@@ -47,7 +47,7 @@ class Office:
         self.dir = Path(cfg.data_dir)
         self.dir.mkdir(exist_ok=True)
         self.state_path = self.dir / "state.json"
-        self.paper = PaperBroker(cash=cfg.seed)
+        self.paper = PaperBroker(cash=cfg.seed, fee_pct=cfg.fee_pct, slippage_pct=cfg.slippage_pct)
         self.last_session = ""
         if not reset_state:
             self._load_state()
@@ -65,10 +65,11 @@ class Office:
         self.paper.positions = {k: Position(k, v["qty"], v["avg"], v.get("opened", ""))
                                 for k, v in s.get("positions", {}).items() if v["qty"] > 0}
         self.last_session = s.get("last_session", "")
+        self.paper.fees_paid = s.get("fees_total", 0.0)
 
     def _save_state(self):
         self.state_path.write_text(json.dumps({
-            "cash": self.paper.cash, "last_session": self.last_session,
+            "cash": self.paper.cash, "last_session": self.last_session, "fees_total": self.paper.fees_paid,
             "positions": {k: {"qty": p.qty, "avg": p.avg_price, "opened": p.opened}
                           for k, p in self.paper.positions.items() if p.qty > 0},
         }, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -169,6 +170,7 @@ class Office:
         self.clock = cal.session(d)[0]
 
         start_eq = self.equity()
+        fees_start = self.paper.fees_paid
         self.log("장시작", date=d.isoformat(), weekday=WEEKDAY_KO[d.weekday()],
                  close_et=close_at.strftime("%H:%M"), week_last_session=week_last,
                  equity=round(start_eq, 2), carried=self.positions_view(), mode=self.cfg.mode,
@@ -274,7 +276,8 @@ class Office:
         self.last_session = d.isoformat()
         self._save_state()
         self.log("장마감", date=d.isoformat(), equity=round(end_eq, 2), pnl_usd=round(pnl, 2),
-                 pnl_pct=round(pnl / start_eq * 100, 3), target_hit=self.risk.target_hit,
+                 pnl_pct=round(pnl / start_eq * 100, 3),
+                 fees_usd=round(self.paper.fees_paid - fees_start, 2), target_hit=self.risk.target_hit,
                  halted=self.risk.halted, orders=self.risk.orders_today,
                  carry_over=self.positions_view())
         return pnl
@@ -285,5 +288,5 @@ class Office:
         for _ in range(n):
             total += self.run_day(d)
             d = cal.next_trading_day(d)
-        print(f"\n{n}거래일 누적 손익: {total:+.2f} USD · 장부: {self.log_path} · 상태: {self.state_path}")
+        print(f"\n{n}거래일 누적 손익(수수료 차감 후): {total:+.2f} USD · 누적 수수료 {self.paper.fees_paid:.2f} USD · 장부: {self.log_path} · 상태: {self.state_path}")
         return total

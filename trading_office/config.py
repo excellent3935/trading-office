@@ -39,6 +39,8 @@ class TeamConfig:
 @dataclass
 class OfficeConfig:
     seed: float = 10_000.0          # 전체 시드(USD)
+    fee_pct: float = 0.25           # 매매 수수료(%) — 매수·매도 각각 부과 (왕복 0.5%)
+    slippage_pct: float = 0.0       # 체결 가격 불리 가정(%)
     mode: str = "paper"             # "paper" | "live" (live는 매 주문 사람 승인 필요)
     llm: str = "mock"               # "mock" | "claude"
     claude_model: str = "sonnet"

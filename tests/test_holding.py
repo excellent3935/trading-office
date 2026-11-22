@@ -88,3 +88,13 @@ class TestHolding(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestFees(unittest.TestCase):
+    def test_round_trip_costs_half_percent(self):
+        from trading_office.broker import PaperBroker
+        b = PaperBroker(cash=10_000)            # 기본 수수료 0.25%
+        b.submit("QQQ", "buy", 10, 500, "t")     # 5,000 + 12.5
+        b.submit("QQQ", "sell", 10, 500, "t")    # 5,000 - 12.5
+        self.assertAlmostEqual(b.cash, 10_000 - 25.0)
+        self.assertAlmostEqual(b.fees_paid, 25.0)

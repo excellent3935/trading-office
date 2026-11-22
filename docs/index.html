@@ -125,6 +125,7 @@ a{color:var(--sky)}
     <li><b>0.5%는 상한</b>목표에 닿으면 신규 매수를 막고 청산만 허용합니다.</li>
     <li><b>−1%면 멈춘다</b>일일 손실 한도에 닿으면 전량 청산하고 그날 매매를 중단합니다.</li>
     <li><b>비중 한도</b>종목당 10%, 주문당 5%, 총 노출 50%, 포지션별 손절 1.5%, 하루 20건.</li>
+    <li><b>수수료 0.25%</b>매수·매도 각각 거래대금의 0.25%를 차감합니다. 한 번 사고팔면 0.5%로, 하루 목표와 같은 크기입니다.</li>
     <li><b>금요일엔 비운다</b>포지션은 다음 날로 넘길 수 있지만, 주 마지막 거래일엔 나스닥 마감 30분 전부터 매수를 막고 15분 전에 전량 청산합니다.</li>
     <li><b>선보고 의무</b>주니어 아이디어는 담당 시니어의 워치리스트와 맞아야 승인됩니다.</li>
     <li><b>실계좌는 사람 승인</b>Python 버전의 <code>--live</code> 모드는 주문마다 터미널에서 yes를 입력해야 전송됩니다.</li>
@@ -141,7 +142,7 @@ python -m unittest discover tests</pre>
 
 <script>
 {
-const C={target:.5,loss:1,maxPos:10,maxGross:50,maxOrder:5,stop:1.5,maxOrders:20,fee:.05};
+const C={target:.5,loss:1,maxPos:10,maxGross:50,maxOrder:5,stop:1.5,maxOrders:20,fee:.25};
 const SEN={sn:{name:'시니어 · 빅테크',syms:['NVDA','AAPL','MSFT','AMZN','META']},sc:{name:'시니어 · 성장주',syms:['QQQ','TSLA','AVGO','AMD','GOOGL']}};
 const JUN={j1:'sn',j2:'sn',j3:'sc'};
 const NM={lead:'팀장',sn:'시니어 · 빅테크',sc:'시니어 · 성장주',j1:'주니어 1',j2:'주니어 2',j3:'주니어 3',risk:'리스크 매니저'};
@@ -161,7 +162,7 @@ function simulate(seed,rounds,mseed){
   const px={};for(const s in BASE)px[s]=BASE[s]*(1+U(-.02,.02));
   const step=()=>{for(const s in px)px[s]*=1+G()*(s==='QQQ'?.004:HV.has(s)?.009:.006)};
   const chg=s=>(px[s]/BASE[s]-1)*100;
-  let cash=seed,orders=0,hit=false,halted=false,round=0;
+  let cash=seed,fees=0,orders=0,hit=false,halted=false,round=0;
   const pos={},fills=[],curve=[],ev=[];
   const expo=()=>Object.entries(pos).reduce((a,[s,p])=>a+p.q*px[s],0);
   const eq=()=>cash+expo();
@@ -170,9 +171,9 @@ function simulate(seed,rounds,mseed){
   const push=(type,from,to,text)=>ev.push({type,from,to,text,n:curve.length,eq:eq(),pnl:pnl(),orders,hit,halted,expo:expo()/eq()*100,pos:snap(),f:fills.length});
   const submit=(s,side,q,by)=>{
     const p=pos[s]||(pos[s]={q:0,a:0});
-    const fpx=px[s]*(1+(side==='buy'?1:-1)*C.fee/100);
-    if(side==='buy'){const cost=q*fpx;if(cost>cash)return null;p.a=(p.a*p.q+cost)/(p.q+q);p.q+=q;cash-=cost}
-    else{q=Math.min(q,p.q);if(q<=0)return null;p.q-=q;cash+=q*fpx;if(p.q<1e-9){p.q=0;p.a=0}}
+    const fpx=px[s];
+    if(side==='buy'){const fee=q*fpx*C.fee/100,cost=q*fpx+fee;if(cost>cash)return null;fees+=fee;p.a=(p.a*p.q+cost)/(p.q+q);p.q+=q;cash-=cost}
+    else{q=Math.min(q,p.q);if(q<=0)return null;const fee=q*fpx*C.fee/100;fees+=fee;p.q-=q;cash+=q*fpx-fee;if(p.q<1e-9){p.q=0;p.a=0}}
     const f={round,by,s,side,q,px:fpx};fills.push(f);return f};
   const check=(s,side,notional)=>{
     if(halted)return{ok:false,why:'매매 중단 상태'};
@@ -221,7 +222,7 @@ function simulate(seed,rounds,mseed){
     riskState();
     for(let t=0;t<4&&!halted;t++){step();curve.push(pnl());riskState()}
   }
-  push('장마감','lead',null,`최종 손익 ${usd(eq()-seed)} (${pct(pnl(),3)}) · 주문 ${orders}건${hit?' · 목표 달성':''}${halted?' · 손실 한도로 중단':''}`);
+  push('장마감','lead',null,`최종 손익 ${usd(eq()-seed)} (${pct(pnl(),3)}, 수수료 ${usd(fees)} 차감 후) · 주문 ${orders}건${hit?' · 목표 달성':''}${halted?' · 손실 한도로 중단':''}`);
   return{ev,curve,fills,seed};
 }
 
