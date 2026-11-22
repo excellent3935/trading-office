@@ -12,6 +12,7 @@ class Position:
     symbol: str
     qty: float = 0.0
     avg_price: float = 0.0
+    opened: str = ""   # 최초 진입 거래일(YYYY-MM-DD). 주간 청산·보유기간 추적용
 
 
 @dataclass
@@ -34,6 +35,8 @@ class PaperBroker(Broker):
     positions: dict = field(default_factory=dict)
     fills: list = field(default_factory=list)
 
+    today: str = ""  # Office가 거래일마다 설정
+
     def submit(self, symbol, side, qty, price, by):
         px = price * (1 + self.fee_pct / 100) if side == "buy" else price * (1 - self.fee_pct / 100)
         pos = self.positions.setdefault(symbol, Position(symbol))
@@ -41,6 +44,8 @@ class PaperBroker(Broker):
             cost = qty * px
             if cost > self.cash:
                 return None
+            if pos.qty == 0:
+                pos.opened = self.today
             pos.avg_price = (pos.avg_price * pos.qty + cost) / (pos.qty + qty)
             pos.qty += qty
             self.cash -= cost
@@ -50,8 +55,8 @@ class PaperBroker(Broker):
                 return None
             pos.qty -= qty
             self.cash += qty * px
-            if pos.qty == 0:
-                pos.avg_price = 0.0
+            if pos.qty <= 1e-9:
+                pos.qty, pos.avg_price, pos.opened = 0.0, 0.0, ""
         f = Fill(symbol, side, qty, round(px, 4), by)
         self.fills.append(f)
         return f

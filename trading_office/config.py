@@ -15,6 +15,11 @@ class RiskLimits:
     max_order_pct: float = 5.0         # 주문 1건 최대 크기(%)
     stop_loss_pct: float = 1.5         # 포지션별 손절(진입가 대비 %)
     max_orders_per_day: int = 20       # 과매매 방지
+    # 보유기간: 포지션은 다음 거래일로 넘길 수 있다(오버나이트 허용).
+    # 단, 매주 마지막 거래일(보통 금요일)에는 장 마감 전에 전량 청산한다.
+    weekly_flatten: bool = True
+    no_entry_before_close_min: int = 30   # 주 마지막 거래일: 마감 N분 전부터 신규 매수 금지
+    flatten_before_close_min: int = 15    # 주 마지막 거래일: 마감 N분 전 전량 청산
 
 
 @dataclass
@@ -38,6 +43,7 @@ class OfficeConfig:
     llm: str = "mock"               # "mock" | "claude"
     claude_model: str = "sonnet"
     intraday_rounds: int = 3        # 하루 중 매매 라운드 수
-    data_dir: str = "office_data"   # 로그/장부 저장 위치
+    data_dir: str = "office_data"   # 로그/장부/포지션 상태(state.json) 저장 위치
+    realtime: bool = False          # True면 실제 미국 동부시간에 맞춰 라운드를 기다렸다 실행
     risk: RiskLimits = field(default_factory=RiskLimits)
     team: TeamConfig = field(default_factory=TeamConfig)

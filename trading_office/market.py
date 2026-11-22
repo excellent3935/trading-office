@@ -20,6 +20,7 @@ class MarketData:
     def quote(self, symbol: str) -> Quote: ...
     def step(self) -> None: ...
     def headlines(self) -> list[str]: return []
+    def new_day(self) -> None: ...  # 거래일 변경(전일 종가 갱신 등)
 
 
 class SampleMarket(MarketData):
@@ -34,6 +35,11 @@ class SampleMarket(MarketData):
 
     def _vol(self, s: str) -> float:
         return 0.004 if s == "QQQ" else 0.009 if s in self.HIGH_VOL else 0.006
+
+    def new_day(self) -> None:
+        self.prev_close = dict(self.price)
+        for s in self.price:  # 밤사이 갭
+            self.price[s] *= 1 + self.rng.gauss(0, self._vol(s) * 1.5)
 
     def step(self) -> None:
         for s in self.price:

@@ -22,6 +22,11 @@ class RiskManager:
         self.orders_today = 0
         self.halted = False       # 손실 한도 도달 → 매매 중단
         self.target_hit = False   # 목표 달성 → 신규 진입 중단
+        self.entry_blocked = ""   # 비어 있지 않으면 신규 매수 금지(사유). 예: 주말 청산 시간대
+
+    def new_day(self):
+        """거래일이 바뀌면 일일 카운터 초기화(포지션은 유지)."""
+        self.orders_today, self.halted, self.target_hit, self.entry_blocked = 0, False, False, ""
 
     def day_pnl_pct(self, equity: float, start_equity: float) -> float:
         return (equity / start_equity - 1) * 100
@@ -53,6 +58,8 @@ class RiskManager:
             qty = min(notional, position_value) / price
             return Verdict(qty > 0, qty, "" if qty > 0 else "보유 수량 없음")
 
+        if self.entry_blocked:
+            return Verdict(False, reason=self.entry_blocked)
         if self.target_hit:
             return Verdict(False, reason="목표 달성 후 신규 매수 금지")
         cap = min(notional,
