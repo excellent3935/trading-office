@@ -2,7 +2,7 @@
 
 SampleMarket: 오프라인 테스트용 가상 시세(랜덤워크). 실제 데이터가 아님.
 실데이터를 붙이려면 MarketData 인터페이스를 구현한 클래스를 추가한다.
-(예: 나스닥은 yfinance/Alpaca, 코인은 ccxt/업비트·바이낸스 API)
+(예: 키움 REST API 미국주식 시세, Alpaca 등)
 """
 import random
 from dataclasses import dataclass
@@ -23,8 +23,9 @@ class MarketData:
 
 
 class SampleMarket(MarketData):
-    BASE = {"QQQ": 520, "NVDA": 180, "AAPL": 230, "MSFT": 480, "TSLA": 350,
-            "BTC-USD": 95_000, "ETH-USD": 3_400, "SOL-USD": 190}
+    BASE = {"NVDA": 180, "AAPL": 230, "MSFT": 480, "AMZN": 220, "META": 700,
+            "QQQ": 520, "TSLA": 350, "AVGO": 340, "AMD": 220, "GOOGL": 280}
+    HIGH_VOL = {"TSLA", "AMD", "NVDA"}
 
     def __init__(self, seed: int | None = None):
         self.rng = random.Random(seed)
@@ -32,7 +33,7 @@ class SampleMarket(MarketData):
         self.price = {s: p * (1 + self.rng.uniform(-0.02, 0.02)) for s, p in self.BASE.items()}
 
     def _vol(self, s: str) -> float:
-        return 0.012 if "-USD" in s else 0.006
+        return 0.004 if s == "QQQ" else 0.009 if s in self.HIGH_VOL else 0.006
 
     def step(self) -> None:
         for s in self.price:
@@ -47,13 +48,13 @@ class SampleMarket(MarketData):
     def headlines(self) -> list[str]:
         return ["[샘플] 연준 위원 발언 대기, 금리 경로 관망세",
                 "[샘플] 반도체 섹터 실적 시즌 진행 중",
-                "[샘플] 비트코인 ETF 순유입 지속"]
+                "[샘플] 나스닥100 리밸런싱 앞두고 대형 기술주 거래량 증가"]
 
 
 class YahooMarket(MarketData):
     """Yahoo Finance 차트 엔드포인트로 실시세를 받는다(표준 라이브러리만 사용).
 
-    나스닥 종목(QQQ, NVDA...)과 코인(BTC-USD...)을 같은 방식으로 조회한다.
+    나스닥 종목(QQQ, NVDA...)을 조회한다.
     비공식 엔드포인트라 바뀔 수 있으며, 실패한 종목은 None 처리 후 주문 대상에서 빠진다.
     step()은 매 라운드 최신 시세로 갱신한다.
     """

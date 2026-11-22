@@ -20,14 +20,14 @@ class RiskLimits:
 @dataclass
 class TeamConfig:
     seniors: dict = field(default_factory=lambda: {
-        "senior_nasdaq": {"market": "nasdaq", "symbols": ["QQQ", "NVDA", "AAPL", "MSFT", "TSLA"]},
-        "senior_crypto": {"market": "crypto", "symbols": ["BTC-USD", "ETH-USD", "SOL-USD"]},
+        "senior_bigtech": {"market": "nasdaq 빅테크", "symbols": ["NVDA", "AAPL", "MSFT", "AMZN", "META"]},
+        "senior_growth": {"market": "nasdaq 성장주·지수", "symbols": ["QQQ", "TSLA", "AVGO", "AMD", "GOOGL"]},
     })
     # 주니어 -> 담당 시니어
     juniors: dict = field(default_factory=lambda: {
-        "junior_1": "senior_nasdaq",
-        "junior_2": "senior_nasdaq",
-        "junior_3": "senior_crypto",
+        "junior_1": "senior_bigtech",
+        "junior_2": "senior_bigtech",
+        "junior_3": "senior_growth",
     })
 
 

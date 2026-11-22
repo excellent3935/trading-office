@@ -6,7 +6,7 @@ from trading_office.risk import RiskManager
 
 class TestRisk(unittest.TestCase):
     def setUp(self):
-        self.r = RiskManager(RiskLimits(), 10_000, {"QQQ", "BTC-USD"})
+        self.r = RiskManager(RiskLimits(), 10_000, {"QQQ", "NVDA"})
 
     def test_unknown_symbol_rejected(self):
         self.assertFalse(self.r.check("GME", "buy", 100, 10, 0, 0, 10_000).ok)

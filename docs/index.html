@@ -80,7 +80,7 @@ a{color:var(--sky)}
 <body>
 <section class="band"><div class="wrap">
   <h1>AI 트레이딩 오피스의 하루</h1>
-  <p class="lede">시니어가 시황을 보고하면 팀장이 전략을 지시하고, 주니어는 시니어에게 선보고한 뒤에만 매매합니다. 모든 주문은 리스크 매니저를 거쳐야 체결됩니다. 나스닥과 코인을 다루고, 하루 목표는 시드의 0.5%입니다.</p>
+  <p class="lede">시니어가 시황을 보고하면 팀장이 전략을 지시하고, 주니어는 시니어에게 선보고한 뒤에만 매매합니다. 모든 주문은 리스크 매니저를 거쳐야 체결됩니다. 나스닥 종목만 다루며, 하루 목표는 시드의 0.5%입니다.</p>
   <form class="ctl" id="ctl">
     <label>시드(USD)<input id="seed" type="number" min="1000" step="1000" value="10000"></label>
     <label>매매 라운드<select id="rounds"><option>3</option><option selected>6</option><option>10</option></select></label>
@@ -141,10 +141,11 @@ python -m unittest discover tests</pre>
 <script>
 {
 const C={target:.5,loss:1,maxPos:10,maxGross:50,maxOrder:5,stop:1.5,maxOrders:20,fee:.05};
-const SEN={sn:{name:'시니어 · 나스닥',syms:['QQQ','NVDA','AAPL','MSFT','TSLA']},sc:{name:'시니어 · 코인',syms:['BTC-USD','ETH-USD','SOL-USD']}};
+const SEN={sn:{name:'시니어 · 빅테크',syms:['NVDA','AAPL','MSFT','AMZN','META']},sc:{name:'시니어 · 성장주',syms:['QQQ','TSLA','AVGO','AMD','GOOGL']}};
 const JUN={j1:'sn',j2:'sn',j3:'sc'};
-const NM={lead:'팀장',sn:'시니어 · 나스닥',sc:'시니어 · 코인',j1:'주니어 1',j2:'주니어 2',j3:'주니어 3',risk:'리스크 매니저'};
-const BASE={QQQ:520,NVDA:180,AAPL:230,MSFT:480,TSLA:350,'BTC-USD':95000,'ETH-USD':3400,'SOL-USD':190};
+const NM={lead:'팀장',sn:'시니어 · 빅테크',sc:'시니어 · 성장주',j1:'주니어 1',j2:'주니어 2',j3:'주니어 3',risk:'리스크 매니저'};
+const BASE={NVDA:180,AAPL:230,MSFT:480,AMZN:220,META:700,QQQ:520,TSLA:350,AVGO:340,AMD:220,GOOGL:280};
+const HV=new Set(['TSLA','AMD','NVDA']);
 const $=id=>document.getElementById(id);
 const usd=v=>(v<0?'−$':'$')+Math.abs(v).toLocaleString('en-US',{maximumFractionDigits:v>=1000||v<=-1000?0:2,minimumFractionDigits:v>=1000||v<=-1000?0:2});
 const pct=(v,d=2)=>(v>0?'+':v<0?'−':'')+Math.abs(v).toFixed(d)+'%';
@@ -157,7 +158,7 @@ function simulate(seed,rounds,mseed){
   const r=rngOf(mseed),U=(a,b)=>a+(b-a)*r();
   const G=()=>{let u=0;while(!u)u=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*r())};
   const px={};for(const s in BASE)px[s]=BASE[s]*(1+U(-.02,.02));
-  const step=()=>{for(const s in px)px[s]*=1+G()*(s.includes('-USD')?.012:.006)};
+  const step=()=>{for(const s in px)px[s]*=1+G()*(s==='QQQ'?.004:HV.has(s)?.009:.006)};
   const chg=s=>(px[s]/BASE[s]-1)*100;
   let cash=seed,orders=0,hit=false,halted=false,round=0;
   const pos={},fills=[],curve=[],ev=[];
@@ -226,7 +227,7 @@ function simulate(seed,rounds,mseed){
 /* 조직도 */
 const N={lead:[320,52],sn:[190,178],sc:[450,178],j1:[90,310],j2:[240,310],j3:[420,310],risk:[570,310]};
 const E=[['lead','sn'],['lead','sc'],['sn','j1'],['sn','j2'],['sc','j3'],['sn','risk',1],['sc','risk',1],['j3','risk',1]];
-const SUB={lead:'전략 지시',sn:'QQQ NVDA AAPL…',sc:'BTC ETH SOL',j1:'나스닥 담당',j2:'나스닥 담당',j3:'코인 담당',risk:'한도 검사 · 체결'};
+const SUB={lead:'전략 지시',sn:'NVDA AAPL MSFT…',sc:'QQQ TSLA AVGO…',j1:'빅테크 담당',j2:'빅테크 담당',j3:'성장주 담당',risk:'한도 검사 · 체결'};
 const org=$('org');
 org.innerHTML=E.map(([a,b,d])=>{const[x1,y1]=N[a],[x2,y2]=N[b];const my=(y1+y2)/2;return`<path class="edge${d?' dash':''}" id="e-${a}-${b}" d="M${x1} ${y1+27} C${x1} ${my+20} ${x2} ${my-20} ${x2} ${y2-27}"/>`}).join('')+
   Object.entries(N).map(([k,[x,y]])=>`<g class="node ${k==='lead'?'lead':''}" id="n-${k}"><rect x="${x-66}" y="${y-27}" width="132" height="54" rx="10"/><text x="${x}" y="${y-3}">${NM[k].replace('시니어 · ','시니어 ')}</text><text class="sub" x="${x}" y="${y+15}">${SUB[k]}</text></g>`).join('');
