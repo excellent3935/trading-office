@@ -60,11 +60,20 @@ class TestEntries(unittest.TestCase):
     def setUp(self):
         self.s = Strategy(StrategyConfig(), fee_pct=0.25)
 
-    def test_long_needs_all_four(self):
+    def test_long_news_required_plus_two_of_three(self):
         self.assertTrue(self.s.entry_long(A(**LONG_OK), 0.0).ok)
+        # 나머지 3개 중 하나만 빠져도 통과 (2/3)
         for k, bad in (("rsi_min", 40), ("up_votes", 2), ("support", 95.0), ("candle_bull", None)):
-            self.assertFalse(self.s.entry_long(A(**{**LONG_OK, k: bad}), 0.0).ok, k)
+            self.assertTrue(self.s.entry_long(A(**{**LONG_OK, k: bad}), 0.0).ok, k)
+        # 둘 이상 빠지면 보류 (1/3)
+        self.assertFalse(self.s.entry_long(A(**{**LONG_OK, "rsi_min": 40, "candle_bull": None}), 0.0).ok)
+        self.assertFalse(self.s.entry_long(A(**{**LONG_OK, "up_votes": 2, "rsi_min": 40}), 0.0).ok)
+        # 뉴스가 악재면 나머지가 전부 통과여도 보류 (필수)
         self.assertFalse(self.s.entry_long(A(**LONG_OK), -0.5).ok, "악재면 진입 보류")
+
+    def test_min_other_is_configurable(self):
+        strict = Strategy(StrategyConfig(entry_min_other=3), fee_pct=0.25)
+        self.assertFalse(strict.entry_long(A(**{**LONG_OK, "candle_bull": None}), 0.0).ok)
 
     def test_divergence_substitutes_for_oversold(self):
         self.assertTrue(self.s.entry_long(A(**{**LONG_OK, "rsi_min": 38, "div_bull": True}), 0.0).ok)
@@ -73,7 +82,7 @@ class TestEntries(unittest.TestCase):
         st = self.s.entry_short("SOXS", A("SOXL", **SHORT_OK), 0.0)
         self.assertTrue(st.ok)
         self.assertEqual((st.instrument, st.signal, st.side), ("SOXS", "SOXL", "short"))
-        self.assertFalse(self.s.entry_short("QID", A("QLD", **{**SHORT_OK, "rsi_max": 60}), 0.0).ok)
+        self.assertFalse(self.s.entry_short("QID", A("QLD", **{**SHORT_OK, "rsi_max": 60}), 0.0).ok, "숏은 3개 모두 필요")
         self.assertFalse(self.s.entry_short("QID", A("QLD", **SHORT_OK), 0.5).ok, "호재면 숏 보류")
 
     def test_thin_data_blocks_entry(self):

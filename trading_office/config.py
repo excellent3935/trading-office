@@ -37,6 +37,8 @@ class StrategyConfig:
     sma_periods: tuple = (20, 50, 100, 200)
     hma_period: int = 200
     slope_bars: int = 5                # 기울기 = 최근 5봉 변화율
+    entry_min_other: int = 2           # 롱: 뉴스는 필수, 나머지 3개(RSI·기울기/지지·전환캔들) 중 최소 이만큼
+    short_min_other: int = 3           # 숏(SOXS·QID): 더 엄격하게 — 뉴스 필수 + 나머지 3개 모두
     trend_min_votes: int = 3           # 5개 이평선(SMA20·50·100·200, HMA200) 중 같은 방향 기울기 최소 개수
     profile_bars: int = 280            # 매물대 계산 구간(약 40거래일)
     level_near_pct: float = 1.0        # 지지/저항 '근처' 판정

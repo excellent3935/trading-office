@@ -241,7 +241,7 @@ class Office:
                 continue
             if len(st.checks) == 4:
                 out.append({**st.as_dict(), "passed": st.passed})
-        return sorted(out, key=lambda x: -x["passed"])[:top]
+        return sorted(out, key=lambda x: (-x["ok"], -x["checks"][0]["ok"], -x["passed"]))[:top]
 
     # ---------- 1시간봉 마감 판단 ----------
     def decide(self, week_last: bool):
@@ -310,7 +310,7 @@ class Office:
                     continue
                 if setup.ok:
                     cands.append(setup)
-                elif setup.passed >= 2 and len(setup.checks) == 4:
+                elif len(setup.checks) == 4 and setup.checks[0][1] and setup.passed - 1 >= max(1, setup.min_other - 1):
                     watch.append(f"{s}({setup.passed}/4)")
             if watch or cands:
                 self.log("스캔", by=jn, to=sn, watch=watch, candidates=[c.instrument for c in cands])

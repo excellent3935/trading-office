@@ -160,7 +160,7 @@ td{padding:8px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
     <ul class="rules">
       <li><b>보고 체계</b>시니어가 시황을 보고하면 팀장이 전략을 지시합니다. 주니어는 담당 시니어에게 선보고하고 승인받아야 매매합니다.</li>
       <li><b>모든 주문은 리스크 데스크로</b>에이전트는 의견만 냅니다. 주문은 리스크 매니저의 한도 검사를 통과해야 서버로 갑니다.</li>
-      <li><b>진입 체크리스트</b>① 뉴스 수급이 악재 아님 ② 1h/4h RSI ≤30(롱)·≥70(숏) 또는 다이버전스 ③ SMA20·50·100·200·HMA200(1시간) 중 3개 이상 같은 방향 기울기 + 지지(롱)/저항(숏) 1% 이내 ④ 추세 전환 캔들. 네 개 모두 통과해야 진입.</li>
+      <li><b>진입 체크리스트</b>뉴스 수급이 악재 아님(필수) + 아래 3개 중 2개 이상(숏은 3개 모두): ② 1h/4h RSI ≤30(롱)·≥70(숏) 또는 다이버전스 ③ SMA20·50·100·200·HMA200(1시간) 중 3개 이상 같은 방향 기울기 + 지지(롱)/저항(숏) 1% 이내 ④ 추세 전환 캔들.</li>
       <li><b>숏은 인버스 ETF로만</b>SOXL·QLD 차트에서 숏 신호가 나오면 SOXS·QID를 삽니다. 숏은 추가매수하지 않습니다.</li>
       <li><b>물타기</b>롱만 1회. 첫 진입가보다 1% 이상 내려와 과거 주요 매물대 라인에 닿고, 전환 캔들 + RSI 반등(또는 다이버전스)이 확인될 때.</li>
       <li><b>손절</b>추매 후 그 매물대 아래로 1시간봉 종가 이탈, 장중 악재로 수급 소멸, 숏은 저항 상방 돌파. 안전망으로 평균단가 −3%(레버리지 ETF는 배수만큼).</li>
@@ -486,7 +486,7 @@ const IND={
 
 /* ================= 전략 (Python strategy.py와 같은 규칙) ================= */
 const SC={longs:['SOXL','QLD','AAPL','NVDA','TSLA','SPCX','ANT','MSFT','META','AMZN','LLY','GOOGL','UNH'],shortMap:{SOXS:'SOXL',QID:'QLD'},lev:{SOXL:3,SOXS:3,QLD:2,QID:2},
-  os:30,ob:70,watch:14,smas:[20,50,100,200],hma:200,slopeBars:5,votes:3,profile:280,near:1,maxAdds:1,addDrop:1,addTouch:.5,stopBuf:.3,tpExtra:.3,tpTouch:.3,newsBlock:-.3,newsExit:-.6,entry:5,hard:3};
+  os:30,ob:70,watch:14,smas:[20,50,100,200],hma:200,slopeBars:5,votes:3,minOther:2,shortMinOther:3,profile:280,near:1,maxAdds:1,addDrop:1,addTouch:.5,stopBuf:.3,tpExtra:.3,tpTouch:.3,newsBlock:-.3,newsExit:-.6,entry:5,hard:3};
 const NEED=200+5+14+2;
 const f2=x=>x==null?'—':x.toFixed(2);
 function analyze(sym,b,price){
@@ -504,18 +504,20 @@ function analyze(sym,b,price){
 function entryLong(a,news){
   if(!a.enough)return{inst:a.sym,side:'long',sig:a.sym,checks:[['데이터',false,a.note]]};
   const near=a.sup!=null&&a.price<=a.sup*(1+SC.near/100);
-  return{inst:a.sym,side:'long',sig:a.sym,key:a.sup,checks:[['뉴스·수급',news>SC.newsBlock,`감성 ${news>=0?'+':''}${news.toFixed(2)}`],
+  return{inst:a.sym,side:'long',sig:a.sym,key:a.sup,need:SC.minOther,checks:[['뉴스·수급',news>SC.newsBlock,`감성 ${news>=0?'+':''}${news.toFixed(2)}`],
     ['RSI·다이버전스',a.rmin<=SC.os||a.divBull,`최근 RSI 최저 ${f2(a.rmin)}${a.divBull?' · 강세 다이버전스':''}`],
     ['이평선 기울기·지지',a.up>=SC.votes&&near,`상승 기울기 ${a.up}/5 · 지지 ${f2(a.sup)}${near?' 근처':' 멀음'}`],
     ['전환 캔들',!!a.cBull,a.cBull||'없음']]}}
 function entryShort(inst,u,news){
   if(!u.enough)return{inst,side:'short',sig:u.sym,checks:[['데이터',false,u.note]]};
   const near=u.res!=null&&u.price>=u.res*(1-SC.near/100);
-  return{inst,side:'short',sig:u.sym,key:u.res,checks:[['뉴스·수급',news<-SC.newsBlock,`${u.sym} 감성 ${news>=0?'+':''}${news.toFixed(2)}`],
+  return{inst,side:'short',sig:u.sym,key:u.res,need:SC.shortMinOther,checks:[['뉴스·수급',news<-SC.newsBlock,`${u.sym} 감성 ${news>=0?'+':''}${news.toFixed(2)}`],
     ['RSI·다이버전스',u.rmax>=SC.ob||u.divBear,`${u.sym} 최근 RSI 최고 ${f2(u.rmax)}${u.divBear?' · 약세 다이버전스':''}`],
     ['이평선 기울기·저항',u.down>=SC.votes&&near,`${u.sym} 하락 기울기 ${u.down}/5 · 저항 ${f2(u.res)}${near?' 근처':' 멀음'}`],
     ['전환 캔들',!!u.cBear,u.cBear||'없음']]}}
-const passed=s=>s.checks.filter(c=>c[1]).length,allOk=s=>s.checks.every(c=>c[1]);
+const passed=s=>s.checks.filter(c=>c[1]).length,others=s=>s.checks.slice(1).filter(c=>c[1]).length,
+  allOk=s=>s.checks.length===4&&s.checks[0][1]&&others(s)>=s.need,
+  nearOk=s=>s.checks.length===4&&s.checks[0][1]&&!allOk(s)&&others(s)>=Math.max(1,s.need-1);
 function addCheck(m,a){
   if(m.side!=='long'||(m.adds||0)>=SC.maxAdds||!a.enough)return null;
   if(a.price>m.entry*(1-SC.addDrop/100))return null;
@@ -663,7 +665,7 @@ function demo(){
       else{if(Object.entries(SC.shortMap).some(([k,v])=>v===s&&pos[k]?.q>1e-9))continue;out.push(entryLong(AN[s],SCORE[s]||0))}}
     return out}
   function renderWatch(){
-    const all=Object.keys(DESK).flatMap(setups).filter(x=>x.checks.length===4).sort((a,b)=>passed(b)-passed(a)).slice(0,7);
+    const all=Object.keys(DESK).flatMap(setups).filter(x=>x.checks.length===4).sort((a,b)=>(allOk(b)-allOk(a))||(b.checks[0][1]-a.checks[0][1])||(passed(b)-passed(a))).slice(0,7);
     $('watch').innerHTML=all.length?all.map(x=>`<li><b>${x.inst}</b><span class="side ${x.side}">${x.side==='long'?'롱':'숏'}</span><span class="dots">${x.checks.map(c=>`<i class="${c[1]?'ok':''}" title="${esc(c[0]+': '+c[2])}"></i>`).join('')}</span><small>${passed(x)}/4</small></li>`).join(''):'<li class="empty">조건을 2개 이상 통과한 종목이 아직 없어요.</li>';
     const thin=ALL.filter(s=>AN[s]&&!AN[s].enough);$('watchNote').textContent=thin.length?`${thin.join(', ')}: 데이터 부족으로 진입 보류`:'';
   }
@@ -684,16 +686,16 @@ function demo(){
         await say(desk,'매물대 + 전환 신호 확인, 1회 추매 승인','good');feed(j,`${s} 추가매수 선보고 → 승인`,`${BYID[j].name} → ${BYID[desk].name} · ${ad.why}`,'on');await home(j);
         if(await order(j,s,'buy',eq()*SC.entry/(lev(s))/100,`물타기: ${ad.why}`)){p.m.adds=(p.m.adds||0)+1;p.m.key=ad.lv}}
       // 신규 진입
-      const list=setups(desk),cands=list.filter(allOk),watch=list.filter(x=>!allOk(x)&&x.checks.length===4&&passed(x)>=3);
+      const list=setups(desk),cands=list.filter(allOk),watch=list.filter(nearOk);
       if(!cands.length&&!watch.length)continue;
       await walk(j,[CH[desk].s.seat[0]+.2,CH[desk].s.seat[1]+.9]);setStatus(j,'보고 중');
-      if(!cands.length){const w=watch[0],miss=w.checks.find(c=>!c[1]);await say(j,`${w.inst} 3/4 관찰 중 — ${miss[0]} 대기 (${miss[2]})`,'say',3200);await wait(300);
-        await say(desk,'계속 지켜봐, 조건 다 맞으면 다시 보고','say');feed(j,`${w.inst} 관찰 3/4`,`${BYID[j].name} → ${BYID[desk].name} · ${miss[0]} 대기`);await home(j);setStatus(j,'대기');continue}
+      if(!cands.length){const w=watch[0],miss=w.checks.find(c=>!c[1]);await say(j,`${w.inst} ${passed(w)}/4 관찰 중 — ${miss[0]} 대기 (${miss[2]})`,'say',3200);await wait(300);
+        await say(desk,'계속 지켜봐, 조건 다 맞으면 다시 보고','say');feed(j,`${w.inst} 관찰 ${passed(w)}/4`,`${BYID[j].name} → ${BYID[desk].name} · ${miss[0]} 대기`);await home(j);setStatus(j,'대기');continue}
       for(const x of cands){
         const n=eq()*SC.entry/lev(x.inst)/100,kind=x.side==='short'?'숏(인버스)':'롱';
-        await say(j,`${x.inst} ${kind} 진입 제안 — 4/4 통과 · ${x.checks[3][2]}`,'say',3200);await wait(400);
-        await say(desk,`체크리스트 4/4 확인, ${usd(n)} 승인`,'good');feed(j,`${x.inst} ${kind} 선보고 → 승인`,x.checks.map(c=>c[2]).join(' · '),'on');
-        await home(j);await order(j,x.inst,'buy',n,x.checks.map(c=>c[0]).join('·')+' 충족',{side:x.side,signal:x.sig,entry:px(x.inst),key:x.key,adds:0});}
+        await say(j,`${x.inst} ${kind} 진입 제안 — 뉴스 통과 + ${others(x)}/3 · ${x.checks.filter(c=>c[1]).slice(1).map(c=>c[0]).join('·')}`,'say',3200);await wait(400);
+        await say(desk,`뉴스 통과 + 나머지 ${others(x)}/3 확인, ${usd(n)} 승인`,'good');feed(j,`${x.inst} ${kind} 선보고 → 승인`,x.checks.filter(c=>c[1]).map(c=>c[2]).join(' · '),'on');
+        await home(j);await order(j,x.inst,'buy',n,x.checks.filter(c=>c[1]).map(c=>c[0]).join('·')+' 충족',{side:x.side,signal:x.sig,entry:px(x.inst),key:x.key,adds:0});}
       setStatus(j,'대기');
     }
   }

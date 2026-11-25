@@ -1,9 +1,10 @@
 """매매 전략 — 사용자 규칙을 코드로 옮긴 것.
 
-진입(롱)  1) 뉴스·수급이 악재가 아님  2) 1h 또는 4h RSI ≤30(최근 N봉 안) 또는 강세 다이버전스
-          3) 이평선(SMA20·50·100·200, HMA200, 1시간봉) 기울기 양수 다수 + 지지선 근처  4) 추세 전환 캔들
+진입(롱)  뉴스·수급이 악재가 아님(필수) + 아래 3개 중 2개 이상(entry_min_other)
+          a) 1h 또는 4h RSI ≤30(최근 N봉 안) 또는 강세 다이버전스
+          b) 이평선(SMA20·50·100·200, HMA200, 1시간봉) 기울기 양수 다수 + 지지선 근처  c) 추세 전환 캔들
 진입(숏)  SOXS·QID만. 기초 차트(SOXL·QLD)에서 위 조건의 반대(RSI ≥70 또는 약세 다이버전스, 기울기 음수,
-          저항 근처, 하락 전환 캔들)를 확인한 뒤 인버스 ETF를 매수한다. 숏은 추가매수하지 않는다.
+          저항 근처, 하락 전환 캔들)를 확인한 뒤 인버스 ETF를 매수한다. 숏은 뉴스 필수 + 3개 모두(short_min_other). 숏은 추가매수하지 않는다.
 물타기    롱만 1회. 과거 주요 매물대(거래량 프로파일) 라인에 닿고 + 확실한 전환 신호(전환 캔들 + RSI 반등 또는 다이버전스)
 손절      1) 1차 추가매수 후 그 지지선(매물대) 아래로 1시간봉 종가 이탈  2) 장중 악재로 수급 이탈
           (숏은 추매가 없으므로 진입 때 저항선 위로 기초 차트가 마감하면 손절)
@@ -90,10 +91,13 @@ class Setup:
     signal: str              # 신호를 본 차트
     checks: list             # [(이름, 통과여부, 설명)]
     key_level: float | None = None
+    min_other: int = 3       # 뉴스(첫 항목)는 필수, 나머지 중 최소 통과 개수
 
     @property
     def ok(self) -> bool:
-        return all(c[1] for c in self.checks)
+        if len(self.checks) != 4 or not self.checks[0][1]:
+            return False
+        return sum(1 for c in self.checks[1:] if c[1]) >= self.min_other
 
     @property
     def passed(self) -> int:
@@ -102,6 +106,7 @@ class Setup:
     def as_dict(self) -> dict:
         return {"instrument": self.instrument, "side": self.side, "signal": self.signal,
                 "checks": [{"name": n, "ok": o, "detail": d} for n, o, d in self.checks],
+                "rule": f"뉴스 필수 + 나머지 3개 중 {self.min_other}개", "ok": self.ok,
                 "key_level": None if self.key_level is None else round(self.key_level, 2)}
 
 
@@ -132,7 +137,7 @@ class Strategy:
              f"상승 기울기 {a.up_votes}/5 · 지지 {fmt(a.support)}" + (" 근처" if near else " 멀음")),
             ("전환 캔들", a.candle_bull is not None, a.candle_bull or "없음"),
         ]
-        return Setup(a.symbol, "long", a.symbol, checks, a.support)
+        return Setup(a.symbol, "long", a.symbol, checks, a.support, c.entry_min_other)
 
     def entry_short(self, instrument: str, u: Analysis, news_under: float) -> Setup:
         """u = 기초 차트(SOXL/QLD) 분석. 조건 충족 시 인버스 ETF(SOXS/QID)를 매수."""
@@ -148,7 +153,7 @@ class Strategy:
              f"{u.symbol} 하락 기울기 {u.down_votes}/5 · 저항 {fmt(u.resistance)}" + (" 근처" if near else " 멀음")),
             ("전환 캔들", u.candle_bear is not None, u.candle_bear or "없음"),
         ]
-        return Setup(instrument, "short", u.symbol, checks, u.resistance)
+        return Setup(instrument, "short", u.symbol, checks, u.resistance, c.short_min_other)
 
     # ---------- 물타기 (롱만) ----------
     def add_check(self, meta: dict, a: Analysis) -> tuple[bool, str, float | None]:

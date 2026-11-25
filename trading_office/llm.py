@@ -45,7 +45,7 @@ class MockLLM(LLM):
     - news_score: 키워드 사전으로 감성 점수
     - market_report: 분석 요약을 문장으로
     - daily_strategy: 데스크별 20% 한도(시장 뉴스가 나쁘면 롱 데스크 10%)
-    - junior_review: 체크리스트가 모두 통과면 승인
+    - junior_review: 코드가 계산한 진입 규칙(setup.ok)을 통과했으면 승인
     """
 
     def ask(self, role, system, user):
@@ -76,12 +76,12 @@ class MockLLM(LLM):
             alloc = {k: (10 if mkt <= -0.3 and k != "senior_etf" else 20) for k in reports}
             stance = "악재 경계 — 롱 축소, 숏 관찰" if mkt <= -0.3 else "규칙 신호만 따라 선별 진입"
             return json.dumps({"stance": stance, "allocation_pct": alloc,
-                               "instructions": {k: "체크리스트 4개 모두 통과한 건만" for k in reports}, "no_trade": []},
+                               "instructions": {k: "뉴스 필수 + 나머지 조건 규칙을 통과한 건만" for k in reports}, "no_trade": []},
                               ensure_ascii=False)
         if task == "junior_review":
             st = data.get("setup", {})
-            ok = all(c.get("ok") for c in st.get("checks", [])) if st.get("checks") else st.get("kind") == "add"
-            return json.dumps({"approved": bool(ok), "comment": "체크리스트 전부 통과, 승인" if ok else "조건 미충족, 반려"},
+            ok = st.get("ok", False) if st.get("checks") else st.get("kind") == "add"
+            return json.dumps({"approved": bool(ok), "comment": "진입 규칙 통과, 승인" if ok else "조건 미충족, 반려"},
                               ensure_ascii=False)
         return "{}"
 
