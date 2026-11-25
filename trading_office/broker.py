@@ -13,6 +13,7 @@ class Position:
     qty: float = 0.0
     avg_price: float = 0.0
     opened: str = ""   # 최초 진입 거래일(YYYY-MM-DD). 주간 청산·보유기간 추적용
+    meta: dict = field(default_factory=dict)  # 전략 정보: side(long/short), signal, entry_price, key_level, adds
 
 
 @dataclass
@@ -62,7 +63,7 @@ class PaperBroker(Broker):
             self.cash += qty * px - fee
             self.fees_paid += fee
             if pos.qty <= 1e-9:
-                pos.qty, pos.avg_price, pos.opened = 0.0, 0.0, ""
+                pos.qty, pos.avg_price, pos.opened, pos.meta = 0.0, 0.0, "", {}
         f = Fill(symbol, side, qty, round(px, 4), by)
         self.fills.append(f)
         return f

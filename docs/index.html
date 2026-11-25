@@ -47,7 +47,12 @@ button:focus-visible{outline:2px solid var(--me);outline-offset:2px}
 .counts{display:flex;gap:6px;flex-wrap:wrap}
 .counts span{font-size:12px;padding:2px 8px;border-radius:99px;background:#f1f4f7;color:var(--mute)}
 .list{list-style:none;margin:0;padding:0;overflow-y:auto}
-.feed{max-height:520px}
+.feed{max-height:380px}
+.watch li{display:grid;grid-template-columns:58px 34px minmax(0,1fr) 30px;gap:6px;align-items:center;padding:6px 2px;border-top:1px solid var(--line);font-size:13.5px}
+.watch li:first-child{border-top:0}.watch li.empty{display:block;color:var(--mute);font-size:13px}
+.side{font-size:11.5px;padding:1px 6px;border-radius:6px;text-align:center}.side.long{background:#fdecee;color:var(--up)}.side.short{background:#e6f0fd;color:var(--dn)}
+.dots{display:flex;gap:5px}.dots i{width:12px;height:12px;border-radius:50%;background:#e3e8ee}.dots i.ok{background:var(--jun)}
+.watch small{color:var(--mute);text-align:right}
 .feed li{display:grid;grid-template-columns:28px minmax(0,1fr) 10px;gap:8px;padding:9px 2px;border-top:1px solid var(--line);align-items:start}
 .feed li:first-child{border-top:0}
 .ic{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:#fff;font-size:12px;font-weight:600}
@@ -121,6 +126,11 @@ td{padding:8px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
           <div class="counts"><span>체결 <b id="nFill">0</b></span><span>거부 <b id="nRej">0</b></span><span>리스크 <b id="nRisk">0</b></span></div>
           <div class="alert" id="alert"><b>사무실 준비 중</b>직원들이 출근하고 있어요.</div>
         </div>
+        <div class="card panel">
+          <h2>관찰 종목 <small>뉴스·RSI·이평선/지지·캔들</small></h2>
+          <ul class="list watch" id="watch"><li class="empty">첫 1시간봉 마감 후 표시돼요.</li></ul>
+          <p class="note" id="watchNote"></p>
+        </div>
         <div class="card panel" style="flex:1">
           <h2>진행 중인 일 <small id="feedN">0건</small></h2>
           <ul class="list feed" id="feed"></ul>
@@ -150,9 +160,15 @@ td{padding:8px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
     <ul class="rules">
       <li><b>보고 체계</b>시니어가 시황을 보고하면 팀장이 전략을 지시합니다. 주니어는 담당 시니어에게 선보고하고 승인받아야 매매합니다.</li>
       <li><b>모든 주문은 리스크 데스크로</b>에이전트는 의견만 냅니다. 주문은 리스크 매니저의 한도 검사를 통과해야 서버로 갑니다.</li>
+      <li><b>진입 체크리스트</b>① 뉴스 수급이 악재 아님 ② 1h/4h RSI ≤30(롱)·≥70(숏) 또는 다이버전스 ③ SMA20·50·100·200·HMA200(1시간) 중 3개 이상 같은 방향 기울기 + 지지(롱)/저항(숏) 1% 이내 ④ 추세 전환 캔들. 네 개 모두 통과해야 진입.</li>
+      <li><b>숏은 인버스 ETF로만</b>SOXL·QLD 차트에서 숏 신호가 나오면 SOXS·QID를 삽니다. 숏은 추가매수하지 않습니다.</li>
+      <li><b>물타기</b>롱만 1회. 첫 진입가보다 1% 이상 내려와 과거 주요 매물대 라인에 닿고, 전환 캔들 + RSI 반등(또는 다이버전스)이 확인될 때.</li>
+      <li><b>손절</b>추매 후 그 매물대 아래로 1시간봉 종가 이탈, 장중 악재로 수급 소멸, 숏은 저항 상방 돌파. 안전망으로 평균단가 −3%(레버리지 ETF는 배수만큼).</li>
+      <li><b>익절</b>진입가 대비 +0.8%(수수료 왕복 0.5% + 0.3%) 이상에서 RSI ≥70, 주요 저항, SMA 저항 중 하나.</li>
+      <li><b>크기</b>1회 진입은 시드의 5%, 레버리지 ETF는 배수로 나눔(SOXL·SOXS 1.67%, QLD·QID 2.5%).</li>
       <li><b>하루 목표 +0.5%</b>달성하면 신규 매수를 멈추고 청산만 허용합니다. 목표는 상한이지 채워야 할 숫자가 아닙니다.</li>
       <li><b>손실 한도 −1%</b>닿으면 전량 청산하고 그날 매매를 멈춥니다.</li>
-      <li><b>비중 한도</b>종목당 10%, 주문당 5%, 총 노출 50%, 포지션별 손절 1.5%, 하루 20건.</li>
+      <li><b>비중 한도</b>종목당 10%, 주문당 5%, 총 노출 50%, 하루 20건.</li>
       <li><b>보유기간</b>필요하면 다음 날로 넘길 수 있습니다. 주 마지막 거래일엔 마감 30분 전부터 매수 금지, 15분 전 전량 청산합니다.</li>
       <li><b>수수료 0.25%</b>매수·매도 각각 거래대금의 0.25%. 한 번 사고팔면 0.5%입니다.</li>
       <li><b>실계좌는 사람 승인</b>실계좌 모드에서는 주문마다 사장님(나)이 터미널에서 yes를 입력해야 전송됩니다.</li>
@@ -183,16 +199,17 @@ const RED=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const ROLE={lead:['팀장','var(--lead)','#c2417a'],sen:['시니어','var(--sen)','#1f7f97'],jun:['주니어','var(--jun)','#3a9a4c'],risk:['리스크','var(--risk)','#d98200'],me:['사장님','var(--me)','#6a4fd8'],sys:['시스템','var(--sys)','#7b8794']};
 const STAFF=[
  {id:'lead',name:'팀장',role:'lead',seat:[3.2,2.9],hair:'#3b2a22'},
- {id:'sb',name:'시니어 · 빅테크',short:'빅테크',role:'sen',seat:[8.3,4.5],hair:'#1d1d1d',syms:['NVDA','AAPL','MSFT','AMZN','META']},
- {id:'sg',name:'시니어 · 성장주',short:'성장주',role:'sen',seat:[11.8,4.5],hair:'#6b4a2b',syms:['QQQ','TSLA','AVGO','AMD','GOOGL']},
- {id:'j1',name:'주니어 1',role:'jun',seat:[7.3,8.4],hair:'#2a2a2a',boss:'sb'},
- {id:'j2',name:'주니어 2',role:'jun',seat:[9.6,8.4],hair:'#8a5a32',boss:'sb'},
- {id:'j3',name:'주니어 3',role:'jun',seat:[12.6,8.4],hair:'#3a2a1a',boss:'sg'},
+ {id:'sb',name:'시니어 · 빅테크',short:'빅테크',role:'sen',seat:[7.4,4.5],hair:'#1d1d1d',syms:['AAPL','NVDA','TSLA','MSFT','META','AMZN','GOOGL']},
+ {id:'se',name:'시니어 · ETF',short:'레버리지·인버스',role:'sen',seat:[10.2,4.5],hair:'#6b4a2b',syms:['SOXL','SOXS','QLD','QID']},
+ {id:'sn',name:'시니어 · 신규',short:'신규상장·헬스케어',role:'sen',seat:[13.0,4.5],hair:'#4a3a2a',syms:['SPCX','ANT','LLY','UNH']},
+ {id:'j1',name:'주니어 1',role:'jun',seat:[7.4,8.4],hair:'#2a2a2a',boss:'sb'},
+ {id:'j2',name:'주니어 2',role:'jun',seat:[10.2,8.4],hair:'#8a5a32',boss:'se'},
+ {id:'j3',name:'주니어 3',role:'jun',seat:[13.0,8.4],hair:'#3a2a1a',boss:'sn'},
  {id:'risk',name:'리스크 매니저',role:'risk',seat:[16.2,5.9],hair:'#222'},
  {id:'me',name:'사장님(나)',role:'me',seat:[2.6,11.2],hair:'#2b2b2b'},
 ];
 const BYID=Object.fromEntries(STAFF.map(s=>[s.id,s]));
-const SPOT={meet:[[2.3,3.9],[4.1,3.9]],leadFront:[3.2,3.9],riskFront:[15.6,6.7],server:[16.8,9.2]};
+const SPOT={meet:[[1.9,3.9],[3.2,4.2],[4.5,3.9]],leadFront:[3.2,3.9],riskFront:[15.6,6.7],server:[16.8,9.2]};
 const AISLE=6.3;
 const ROOMS=[{x1:1,y1:1,x2:5.4,y2:4.8,door:[5.9,3.6]},{x1:1,y1:9.2,x2:4.8,y2:13.4,door:[5.3,10.6]}];
 const inRoom=(p)=>ROOMS.find(r=>p[0]>r.x1&&p[0]<r.x2&&p[1]>r.y1&&p[1]<r.y2);
@@ -272,9 +289,9 @@ function addObj(depth,html){const g=document.createElementNS(NS,'g');g.innerHTML
 addObj(3.2,desk(2.4,1.7,'',ROLE.lead[2])+chair(3.2,2.9));
 addObj(1.2,plant(1.5,1.5));addObj(9.6,glass(1,1,5.4,4.8,70,true)+label(1.8,4.8,74,'팀장실',ROLE.lead[2]));
 // 시니어
-addObj(10,desk(7.5,3.2,'',ROLE.sen[2])+chair(8.3,4.5));addObj(13.5,desk(11,3.2,'',ROLE.sen[2])+chair(11.8,4.5));
+for(const x of [6.6,9.4,12.2])addObj(x+3.8,desk(x,3.2,'',ROLE.sen[2])+chair(x+.8,4.5));
 // 주니어
-for(const[x]of[[6.5],[8.8],[11.8]])addObj(x+7.7,desk(x,7.1,'',ROLE.jun[2])+chair(x+.8,8.4));
+for(const x of [6.6,9.4,12.2])addObj(x+7.7,desk(x,7.1,'',ROLE.jun[2])+chair(x+.8,8.4));
 // 리스크
 addObj(19,desk(15.4,4.6,'',ROLE.risk[2])+chair(16.2,5.9)+label(16.3,4.4,60,'리스크 데스크',ROLE.risk[2]));
 // 서버실
@@ -407,7 +424,7 @@ function showClock(){const t=clockTxt();$('clk').textContent=t||'—';$('wallClo
 
 /* 시세 스크린 + 지표 */
 const HIST={};let SNAP={prices:{},change:{},equity:10000,cash:10000,fees:0,positions:{},startEq:10000};
-const SCREEN=['QQQ','NVDA'];
+const SCREEN=['QLD','SOXL'];
 function drawScreen(){
   SCREEN.forEach((s,i)=>{
     const g=$(i?'scrB':'scrA');const p=SNAP.prices[s];if(p==null){g.innerHTML='';return}
@@ -435,141 +452,296 @@ let LOG=[];
 function logFill(by,side,s,amt,price,fee){LOG.unshift(`<tr><td>${esc(clockTxt())}</td><td>${esc(BYID[by]?.name||by)}</td><td class="${side==='buy'?'up':'dn'}">${side==='buy'?'매수':'매도'}</td><td>${esc(s)}</td><td class="n">${usd(amt,2)}</td><td class="n">${pxf(price)}</td><td class="n">${fee==null?'—':usd(fee,2)}</td></tr>`);LOG=LOG.slice(0,300);$('logT').innerHTML=LOG.join('')}
 function counts(){$('nFill').textContent=NF;$('nRej').textContent=NR;$('nRisk').textContent=NK}
 
-/* ================= 데모 엔진 (브라우저 안에서 도는 모의 오피스) ================= */
-const C={target:.5,loss:1,maxPos:10,maxGross:50,maxOrder:5,stop:1.5,maxOrders:20,fee:.25,noEntry:30,flat:15,rounds:6};
+/* ================= 지표 (Python indicators.py와 같은 계산) ================= */
+const IND={
+ sma(x,n){const o=[];let s=0;for(let i=0;i<x.length;i++){s+=x[i];if(i>=n)s-=x[i-n];o.push(i>=n-1?s/n:null)}return o},
+ wma(x,n){const w=n*(n+1)/2,o=[];for(let i=0;i<x.length;i++){if(i<n-1){o.push(null);continue}let s=0;for(let k=0;k<n;k++)s+=x[i-n+1+k]*(k+1);o.push(s/w)}return o},
+ hma(x,n){const a=IND.wma(x,Math.max(1,n>>1)),b=IND.wma(x,n),raw=[];for(let i=0;i<x.length;i++)if(a[i]!=null&&b[i]!=null)raw.push(2*a[i]-b[i]);
+   return raw.length?Array(x.length-raw.length).fill(null).concat(IND.wma(raw,Math.max(1,Math.round(Math.sqrt(n))))):Array(x.length).fill(null)},
+ slope(s,k=5){const n=s.length;return n<=k||s[n-1]==null||s[n-1-k]==null?null:(s[n-1]/s[n-1-k]-1)*100},
+ rsi(c,n=14){const o=Array(c.length).fill(null);if(c.length<=n)return o;let g=0,l=0;for(let i=1;i<=n;i++){const d=c[i]-c[i-1];g+=Math.max(d,0);l+=Math.max(-d,0)}
+   let ag=g/n,al=l/n;o[n]=al===0?100:100-100/(1+ag/al);for(let i=n+1;i<c.length;i++){const d=c[i]-c[i-1];ag=(ag*(n-1)+Math.max(d,0))/n;al=(al*(n-1)+Math.max(-d,0))/n;o[i]=al===0?100:100-100/(1+ag/al)}return o},
+ to4h(b){const o=[];let day=null,g=[];const fl=()=>{if(g.length)o.push({t:g[0].t,d:g[0].d,o:g[0].o,h:Math.max(...g.map(x=>x.h)),l:Math.min(...g.map(x=>x.l)),c:g[g.length-1].c,v:g.reduce((a,x)=>a+x.v,0)})};
+   for(const x of b){if(x.d!==day){fl();day=x.d;g=[]}else if(g.length===4){fl();g=[]}g.push(x)}fl();return o},
+ swings(v,kind,L=3,R=3){const o=[];for(let i=L;i<v.length-R;i++){const w=v.slice(i-L,i+R+1);if(kind==='low'?v[i]===Math.min(...w):v[i]===Math.max(...w))o.push(i)}return o},
+ div(b,r,kind,lb=40,rec=8){if(b.length<lb)return false;const s=b.slice(-lb),rs=r.slice(-lb);
+   if(kind==='bull'){const p=IND.swings(s.map(x=>x.l),'low',3,2).filter(i=>rs[i]!=null);if(p.length<2)return false;const[i1,i2]=p.slice(-2);return lb-1-i2<=rec&&s[i2].l<s[i1].l&&rs[i2]>rs[i1]&&rs[i1]<40}
+   const p=IND.swings(s.map(x=>x.h),'high',3,2).filter(i=>rs[i]!=null);if(p.length<2)return false;const[i1,i2]=p.slice(-2);return lb-1-i2<=rec&&s[i2].h>s[i1].h&&rs[i2]<rs[i1]&&rs[i1]>60},
+ candle(b,kind){if(b.length<3)return null;const[a,p,x]=b.slice(-3),rng=Math.max(x.h-x.l,1e-9),body=Math.abs(x.c-x.o),up=x.h-Math.max(x.o,x.c),lo=Math.min(x.o,x.c)-x.l;
+   if(kind==='bull'){const dec=p.c<p.o||a.c>p.c;
+     if(p.c<p.o&&x.c>x.o&&x.c>=p.o&&x.o<=p.c&&body>Math.abs(p.c-p.o)*.9)return'상승 장악형';
+     if(dec&&lo>=2*body&&up<=Math.max(body,rng*.15)&&body/rng<=.4)return'망치형';
+     if(p.c<p.o&&x.o<p.c&&x.c>(p.o+p.c)/2&&x.c<p.o)return'관통형';
+     if(a.c<a.o&&Math.abs(p.c-p.o)<=(a.o-a.c)*.3&&x.c>x.o&&x.c>(a.o+a.c)/2)return'샛별형';return null}
+   const ris=p.c>p.o||a.c<p.c;
+   if(p.c>p.o&&x.c<x.o&&x.c<=p.o&&x.o>=p.c&&body>Math.abs(p.c-p.o)*.9)return'하락 장악형';
+   if(ris&&up>=2*body&&lo<=Math.max(body,rng*.15)&&body/rng<=.4)return'유성형';
+   if(p.c>p.o&&x.o>p.c&&x.c<(p.o+p.c)/2&&x.c>p.o)return'먹구름형';
+   if(a.c>a.o&&Math.abs(p.c-p.o)<=(a.c-a.o)*.3&&x.c<x.o&&x.c<(a.o+a.c)/2)return'석별형';return null},
+ vp(b,bins=40,top=6){if(b.length<20)return[];const lo=Math.min(...b.map(x=>x.l)),hi=Math.max(...b.map(x=>x.h));if(hi<=lo)return[];const w=(hi-lo)/bins,v=Array(bins).fill(0);
+   for(const x of b){const i0=Math.min(bins-1,Math.floor((x.l-lo)/w)),i1=Math.min(bins-1,Math.floor((x.h-lo)/w)),sh=x.v/(i1-i0+1);for(let i=i0;i<=i1;i++)v[i]+=sh}
+   const pk=[];for(let i=0;i<bins;i++)if(v[i]>=(i?v[i-1]:0)&&v[i]>=(i<bins-1?v[i+1]:0))pk.push(i);pk.sort((a,c)=>v[c]-v[a]);return pk.slice(0,top).map(i=>lo+(i+.5)*w).sort((a,c)=>a-c)},
+ swingLv(b,lb=120){const s=b.slice(-lb);return[...IND.swings(s.map(x=>x.l),'low',5,5).map(i=>s[i].l),...IND.swings(s.map(x=>x.h),'high',5,5).map(i=>s[i].h)].sort((a,c)=>a-c)},
+};
+
+/* ================= 전략 (Python strategy.py와 같은 규칙) ================= */
+const SC={longs:['SOXL','QLD','AAPL','NVDA','TSLA','SPCX','ANT','MSFT','META','AMZN','LLY','GOOGL','UNH'],shortMap:{SOXS:'SOXL',QID:'QLD'},lev:{SOXL:3,SOXS:3,QLD:2,QID:2},
+  os:30,ob:70,watch:14,smas:[20,50,100,200],hma:200,slopeBars:5,votes:3,profile:280,near:1,maxAdds:1,addDrop:1,addTouch:.5,stopBuf:.3,tpExtra:.3,tpTouch:.3,newsBlock:-.3,newsExit:-.6,entry:5,hard:3};
+const NEED=200+5+14+2;
+const f2=x=>x==null?'—':x.toFixed(2);
+function analyze(sym,b,price){
+  if(b.length<NEED)return{sym,enough:false,note:`데이터 부족(${b.length}/${NEED}봉)`,price};
+  const c=b.map(x=>x.c),r1=IND.rsi(c),b4=IND.to4h(b),r4=IND.rsi(b4.map(x=>x.c));
+  const rec=[...r1.slice(-SC.watch),...r4.slice(-Math.max(1,SC.watch>>2))].filter(x=>x!=null);
+  const a={sym,enough:true,price,last:c[c.length-1],rsi1h:r1[r1.length-1],rsiPrev:r1[r1.length-2],rsi4h:r4[r4.length-1],rmin:Math.min(...rec),rmax:Math.max(...rec),mas:{},slopes:{}};
+  a.divBull=IND.div(b,r1,'bull')||IND.div(b4,r4,'bull',30,3);a.divBear=IND.div(b,r1,'bear')||IND.div(b4,r4,'bear',30,3);
+  for(const n of SC.smas){const s=IND.sma(c,n);a.mas['SMA'+n]=s[s.length-1];a.slopes['SMA'+n]=IND.slope(s,SC.slopeBars)}
+  const h=IND.hma(c,SC.hma);a.mas.HMA200=h[h.length-1];a.slopes.HMA200=IND.slope(h,SC.slopeBars);
+  const sl=Object.values(a.slopes);a.up=sl.filter(v=>v!=null&&v>0).length;a.down=sl.filter(v=>v!=null&&v<0).length;
+  a.cBull=IND.candle(b,'bull');a.cBear=IND.candle(b,'bear');a.vp=IND.vp(b.slice(-SC.profile));
+  const lv=[...a.vp,...IND.swingLv(b),...Object.values(a.mas).filter(Boolean)];
+  const below=lv.filter(x=>x<price),above=lv.filter(x=>x>price);a.sup=below.length?Math.max(...below):null;a.res=above.length?Math.min(...above):null;return a}
+function entryLong(a,news){
+  if(!a.enough)return{inst:a.sym,side:'long',sig:a.sym,checks:[['데이터',false,a.note]]};
+  const near=a.sup!=null&&a.price<=a.sup*(1+SC.near/100);
+  return{inst:a.sym,side:'long',sig:a.sym,key:a.sup,checks:[['뉴스·수급',news>SC.newsBlock,`감성 ${news>=0?'+':''}${news.toFixed(2)}`],
+    ['RSI·다이버전스',a.rmin<=SC.os||a.divBull,`최근 RSI 최저 ${f2(a.rmin)}${a.divBull?' · 강세 다이버전스':''}`],
+    ['이평선 기울기·지지',a.up>=SC.votes&&near,`상승 기울기 ${a.up}/5 · 지지 ${f2(a.sup)}${near?' 근처':' 멀음'}`],
+    ['전환 캔들',!!a.cBull,a.cBull||'없음']]}}
+function entryShort(inst,u,news){
+  if(!u.enough)return{inst,side:'short',sig:u.sym,checks:[['데이터',false,u.note]]};
+  const near=u.res!=null&&u.price>=u.res*(1-SC.near/100);
+  return{inst,side:'short',sig:u.sym,key:u.res,checks:[['뉴스·수급',news<-SC.newsBlock,`${u.sym} 감성 ${news>=0?'+':''}${news.toFixed(2)}`],
+    ['RSI·다이버전스',u.rmax>=SC.ob||u.divBear,`${u.sym} 최근 RSI 최고 ${f2(u.rmax)}${u.divBear?' · 약세 다이버전스':''}`],
+    ['이평선 기울기·저항',u.down>=SC.votes&&near,`${u.sym} 하락 기울기 ${u.down}/5 · 저항 ${f2(u.res)}${near?' 근처':' 멀음'}`],
+    ['전환 캔들',!!u.cBear,u.cBear||'없음']]}}
+const passed=s=>s.checks.filter(c=>c[1]).length,allOk=s=>s.checks.every(c=>c[1]);
+function addCheck(m,a){
+  if(m.side!=='long'||(m.adds||0)>=SC.maxAdds||!a.enough)return null;
+  if(a.price>m.entry*(1-SC.addDrop/100))return null;
+  const t=a.vp.filter(l=>Math.abs(a.price/l-1)*100<=SC.addTouch);if(!t.length)return null;
+  const turn=!!a.cBull&&(a.divBull||(a.rsi1h>a.rsiPrev&&a.rsi1h<45));if(!turn)return null;
+  const lv=t.reduce((x,y)=>Math.abs(y-a.price)<Math.abs(x-a.price)?y:x);return{lv,why:`매물대 ${lv.toFixed(2)} 도달 + ${a.cBull}${a.divBull?' + 강세 다이버전스':' + RSI 반등'}`}}
+function exitReason(m,px,avg,a,news,fee){
+  if(m.side==='long'&&news<=SC.newsExit)return[`장중 악재로 수급 이탈(감성 ${news.toFixed(2)})`,'news'];
+  if(m.side==='short'&&news>=-SC.newsExit)return[`${a.sym} 장중 호재로 숏 근거 소멸`,'news'];
+  if(m.key&&a.enough){
+    if(m.side==='long'&&(m.adds||0)>=1&&a.last<m.key*(1-SC.stopBuf/100))return[`1차 추매 후 지지선 ${m.key.toFixed(2)} 하방 이탈`,'stop'];
+    if(m.side==='short'&&a.last>m.key*(1+SC.stopBuf/100))return[`${a.sym} 저항선 ${m.key.toFixed(2)} 상방 돌파`,'stop'];}
+  if(px<avg*(1+fee/100+SC.tpExtra/100)||!a.enough)return[null];
+  const p=a.price,t=SC.tpTouch/100;
+  if(m.side==='long'){
+    if(a.rsi1h>=SC.ob)return[`RSI ${a.rsi1h.toFixed(1)} 과매수권 익절`,'tp'];
+    if(a.res&&p>=a.res*(1-t))return[`주요 저항 ${a.res.toFixed(2)} 도착 익절`,'tp'];
+    const s=Object.entries(a.mas).find(([k,v])=>k.startsWith('SMA')&&v&&v>=p&&v<=p*(1+t));if(s)return[`${s[0]} 저항 도착 익절`,'tp'];
+  }else{
+    if(a.rsi1h<=SC.os)return[`${a.sym} RSI ${a.rsi1h.toFixed(1)} 과매도권 익절`,'tp'];
+    if(a.sup&&p<=a.sup*(1+t))return[`${a.sym} 주요 지지 ${a.sup.toFixed(2)} 도착 익절`,'tp'];
+    const s=Object.entries(a.mas).find(([k,v])=>k.startsWith('SMA')&&v&&v<=p&&v>=p*(1-t));if(s)return[`${a.sym} ${s[0]} 지지 도착 익절`,'tp'];
+  }return[null]}
+
+/* ================= 가상 시장 (5분 단위, 1시간봉) ================= */
 const HOL=new Set(['2026-01-01','2026-01-19','2026-02-16','2026-04-03','2026-05-25','2026-06-19','2026-07-03','2026-09-07','2026-11-26','2026-12-25','2027-01-01','2027-01-18','2027-02-15','2027-03-26','2027-05-31','2027-06-18','2027-07-05','2027-09-06','2027-11-25','2027-12-24']);
 const EARLY=new Set(['2026-11-27','2026-12-24','2027-11-26']);
 const dt=s=>new Date(s+'T12:00:00Z');const ds=d=>d.toISOString().slice(0,10);
 const addDays=(s,n)=>{const d=dt(s);d.setUTCDate(d.getUTCDate()+n);return ds(d)};
 const isTD=s=>{const w=dt(s).getUTCDay();return w>0&&w<6&&!HOL.has(s)};
 const nextTD=s=>{do s=addDays(s,1);while(!isTD(s));return s};
+const prevTD=s=>{do s=addDays(s,-1);while(!isTD(s));return s};
 const weekKey=s=>addDays(s,-((dt(s).getUTCDay()+6)%7));
 const weekLast=s=>weekKey(nextTD(s))!==weekKey(s);
+const closeMin=d=>EARLY.has(d)?13*60:16*60;
 const WD='일월화수목금토';
 const todayET=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York'}).format(new Date());
 
-function demo(){
-  const BASE={NVDA:180,AAPL:230,MSFT:480,AMZN:220,META:700,QQQ:520,TSLA:350,AVGO:340,AMD:220,GOOGL:280};
-  const VOL=s=>s==='QQQ'?.011:['TSLA','AMD','NVDA'].includes(s)?.024:.016;
+function Market(start){
   const G=()=>{let u=0;while(!u)u=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*Math.random())};
-  const px={},prev={};for(const s in BASE){prev[s]=BASE[s];px[s]=BASE[s]*(1+(Math.random()-.5)*.03)}
-  let cash=10000,fees=0;const pos={};
-  let orders=0,halted=false,hit=false,block='',startEq=10000;
-  const expo=()=>Object.entries(pos).reduce((a,[s,p])=>a+p.q*px[s],0);
+  const U=(a,b)=>a+(b-a)*Math.random(),pick=a=>a[Math.floor(Math.random()*a.length)];
+  const FV={NDX:.012,SOX:.022};
+  const ST={AAPL:[230,'NDX',.9,.010],NVDA:[180,'SOX',1.1,.016],TSLA:[350,'NDX',1.4,.025],SPCX:[150,'NDX',1.2,.022],ANT:[80,'NDX',1.3,.030],MSFT:[480,'NDX',.9,.009],META:[700,'NDX',1.1,.014],AMZN:[220,'NDX',1,.012],LLY:[900,'NDX',.3,.012],GOOGL:[280,'NDX',1,.012],UNH:[320,'NDX',.3,.013]};
+  const EF={QLD:[120,'NDX',2],QID:[22.5,'NDX',-2],SOXL:[40,'SOX',3],SOXS:[9,'SOX',-3]};
+  const LISTED={ANT:'2026-11-19',SPCX:'2026-06-12'};
+  const syms=[...Object.keys(ST),...Object.keys(EF)];
+  const f={},s={},e={};for(const k in FV)f[k]={x:0,tr:0,mu:0,left:0};
+  for(const k in ST)s[k]={x:Math.log(ST[k][0]),tr:Math.log(ST[k][0]),mu:0,left:0};for(const k in EF)e[k]=Math.log(EF[k][0]);
+  const hist=Object.fromEntries(syms.map(k=>[k,[]])),cur={};let day=null,barT=0,open={},prev={};
+  const price=k=>Math.exp(k in s?s[k].x:e[k]);
+  const reg=(st,sc)=>{if(st.left<=0){st.mu=pick([1,1,0,-1,-1])*sc*U(.3,1)/78;st.left=Math.floor(U(4,13))*78}st.left--};
+  const K=.012;
+  function step(min){
+    const fr={};
+    for(const k in FV){const st=f[k],v=FV[k];reg(st,v*.35);st.tr+=st.mu;let j=0;if(Math.random()<.002)j=pick([-1,-1,1])*U(1,2.5)*v;const r=st.mu+v/Math.sqrt(78)*G()-K*(st.x-st.tr)+j;st.x+=r;fr[k]=r}
+    const mv={};
+    for(const k in ST){const[,fac,b,iv]=ST[k],st=s[k];reg(st,iv*.3);st.tr+=st.mu+b*fr[fac];let j=0;if(Math.random()<.003)j=pick([-1,-1,1])*U(1.5,3.5)*iv;const r=b*fr[fac]+st.mu+iv/Math.sqrt(78)*G()-K*(st.x-st.tr)+j;st.x+=r;mv[k]=r}
+    for(const k in EF){const r=EF[k][2]*fr[EF[k][1]];e[k]+=r;mv[k]=r}
+    for(const k of syms){if(LISTED[k]&&day<LISTED[k])continue;const p=price(k),u=min<10*60+30||min>=15*60?1.6:1,v=1e5*u*Math.exp(G()*.4)*(1+40*Math.abs(mv[k]));
+      const b=cur[k];if(!b){const o=open[k]??p;cur[k]={t:`${day} ${hhmm(barT)}`,d:day,o,h:Math.max(o,p),l:Math.min(o,p),c:p,v}}else{b.h=Math.max(b.h,p);b.l=Math.min(b.l,p);b.c=p;b.v+=v}}
+  }
+  function closeBar(){for(const k of syms){if(cur[k]){hist[k].push(cur[k]);if(hist[k].length>600)hist[k].shift()}cur[k]=null}open=Object.fromEntries(syms.map(k=>[k,price(k)]))}
+  function newDay(d){
+    prev=Object.fromEntries(syms.map(k=>[k,price(k)]));const gap={};
+    for(const k in FV){gap[k]=G()*FV[k]*.35;f[k].x+=gap[k]}
+    for(const k in ST)s[k].x+=ST[k][2]*gap[ST[k][1]]+G()*ST[k][3]*.3;
+    for(const k in EF)e[k]+=EF[k][2]*gap[EF[k][1]];
+    day=d;barT=9*60+30;open=Object.fromEntries(syms.map(k=>[k,price(k)]));for(const k of syms)cur[k]=null;
+  }
+  function stepTo(min){ // min = 5분 단위 시각
+    step(min);const cl=closeMin(day);
+    if(min>=cl){closeBar();barT=cl}else if(min>=barT+60){closeBar();barT+=60}
+  }
+  // 과거 45거래일
+  let d=start;const days=[];for(let i=0;i<45;i++){d=prevTD(d);days.unshift(d)}
+  for(const hd of days){newDay(hd);for(let m=9*60+35;m<=closeMin(hd);m+=5)stepTo(m)}
+  return{syms,newDay,stepTo,price,bars:k=>hist[k],chg:k=>(price(k)/(prev[k]||price(k))-1)*100,get day(){return day}};
+}
+
+/* 가상 뉴스 */
+function News(){
+  const GOOD=['{s} beats estimates, raises guidance','Analysts upgrade {s} on strong demand','{s} announces buyback'],
+        BAD=['{s} faces probe over practices','{s} misses estimates, cuts outlook','Downgrade hits {s} on weak demand'],
+        UND={QLD:'Nasdaq',QID:'Nasdaq',SOXL:'Semiconductor ETF',SOXS:'Semiconductor ETF'};
+  const items={};let seq=0;
+  return{refresh(syms){seq++;for(const s of syms){const r=Math.random(),n=UND[s]||s;let t=null,sc=0;
+      if(r<.04){t=BAD[Math.floor(Math.random()*3)].replace('{s}',n);sc=-.67}else if(r<.1){t=GOOD[Math.floor(Math.random()*3)].replace('{s}',n);sc=.67}
+      if(t)(items[s]||(items[s]=[])).push({t,sc,seq})}},
+    score(s){const f=(items[s]||[]).filter(i=>i.seq>seq-14);return f.length?Math.max(-1,Math.min(1,f.reduce((a,i)=>a+i.sc,0))):0},
+    latest(s){const f=(items[s]||[]).filter(i=>i.seq>seq-14);return f.length?f[f.length-1]:null}};
+}
+
+/* ================= 데모 오피스 ================= */
+const C={target:.5,loss:1,maxPos:10,maxGross:50,maxOrder:5,maxOrders:20,fee:.25,noEntry:30,flat:15};
+function demo(){
+  const start=(()=>{let d=todayET();return isTD(d)?d:nextTD(d)})();
+  const M=Market(start),N=News();
+  const DESK={sb:['AAPL','NVDA','TSLA','MSFT','META','AMZN','GOOGL'],se:['SOXL','SOXS','QLD','QID'],sn:['SPCX','ANT','LLY','UNH']};
+  const ALL=Object.values(DESK).flat();
+  let cash=10000,fees=0;const pos={};let orders=0,halted=false,hit=false,block='',startEq=10000;const AN={},SCORE={};
+  const px=k=>M.price(k);
+  const expo=()=>Object.entries(pos).reduce((a,[s,p])=>a+p.q*px(s),0);
   const eq=()=>cash+expo();
-  const sync=()=>{SNAP={prices:{...px},change:Object.fromEntries(Object.keys(px).map(s=>[s,(px[s]/prev[s]-1)*100])),equity:eq(),cash,fees,startEq,
-    positions:Object.fromEntries(Object.entries(pos).filter(([,p])=>p.q>1e-9).map(([s,p])=>[s,{qty:p.q,avg:p.a,opened:p.o}]))};renderKpis();drawScreen()};
-  const owner=s=>STAFF.find(x=>x.syms?.includes(s))?.id||'sb';
-  function submit(s,side,q){const p=pos[s]||(pos[s]={q:0,a:0,o:''});const price=px[s];
+  const lev=s=>SC.lev[s]||1;
+  const sync=()=>{SNAP={prices:Object.fromEntries(ALL.map(s=>[s,px(s)])),change:Object.fromEntries(ALL.map(s=>[s,M.chg(s)])),equity:eq(),cash,fees,startEq,
+    positions:Object.fromEntries(Object.entries(pos).filter(([,p])=>p.q>1e-9).map(([s,p])=>[s,{qty:p.q,avg:p.a,opened:p.o,side:p.m.side,adds:p.m.adds||0}]))};renderKpis();drawScreen()};
+  function submit(s,side,q){const p=pos[s]||(pos[s]={q:0,a:0,o:'',m:{}});const price=px(s);
     if(side==='buy'){const fee=q*price*C.fee/100,cost=q*price+fee;if(cost>cash)return null;if(p.q<1e-9)p.o=CLOCK.date;p.a=(p.a*p.q+cost)/(p.q+q);p.q+=q;cash-=cost;fees+=fee;return{q,price,fee}}
-    q=Math.min(q,p.q);if(q<=1e-9)return null;const fee=q*price*C.fee/100;p.q-=q;cash+=q*price-fee;fees+=fee;if(p.q<1e-9){p.q=0;p.a=0;p.o=''}return{q,price,fee}}
+    q=Math.min(q,p.q);if(q<=1e-9)return null;const fee=q*price*C.fee/100;p.q-=q;cash+=q*price-fee;fees+=fee;if(p.q<1e-9){p.q=0;p.a=0;p.o='';p.m={}}return{q,price,fee}}
   function check(s,side,notional){
     if(halted)return{why:'매매 중단 상태'};if(orders>=C.maxOrders)return{why:'하루 주문 20건 초과'};
-    const pv=(pos[s]?.q||0)*px[s],e=eq();
-    if(side==='sell'){const q=Math.min(notional,pv)/px[s];return q>1e-9?{q}:{why:'보유 수량 없음'}}
+    const pv=(pos[s]?.q||0)*px(s),e=eq();
+    if(side==='sell'){const q=Math.min(notional,pv)/px(s);return q>1e-9?{q}:{why:'보유 수량 없음'}}
     if(block)return{why:block};if(hit)return{why:'목표 달성 후 신규 매수 금지'};
     const cap=Math.min(notional,e*C.maxOrder/100,e*C.maxPos/100-pv,e*C.maxGross/100-expo());
-    return cap>1?{q:cap/px[s],cut:cap<notional-1}:{why:'비중·노출 한도 초과'};
-  }
-  async function order(by,s,side,notional,why){
+    return cap>1?{q:cap/px(s),cut:cap<notional-1}:{why:'비중·노출 한도 초과'}}
+  async function order(by,s,side,notional,why,meta){
     setStatus(by,'일하는 중');await packet(posOf(by),SPOT.riskFront,ROLE[BYID[by].role][2]);
     const v=check(s,side,notional);
-    if(!v.q){NR++;counts();say('risk',`${s} ${side==='buy'?'매수':'매도'} 거부: ${v.why}`,'bad');feed('risk',`${s} ${side==='buy'?'매수':'매도'} 거부`,`${BYID[by].name} · ${v.why}`,'bad');await wait(900);setStatus(by,'대기');return}
+    if(!v.q){NR++;counts();say('risk',`${s} 거부: ${v.why}`,'bad');feed('risk',`${s} 주문 거부`,`${BYID[by].name} · ${v.why}`,'bad');await wait(800);setStatus(by,'대기');return false}
     setStatus('risk','일하는 중');await packet(SPOT.riskFront,SPOT.server,ROLE.risk[2]);
-    const f=submit(s,side,v.q);
-    if(!f){NR++;counts();say('risk','현금 부족으로 거부','bad');setStatus(by,'대기');return}
+    const f=submit(s,side,v.q);if(!f){NR++;counts();say('risk','현금 부족으로 거부','bad');setStatus(by,'대기');return false}
+    if(meta)Object.assign(pos[s].m,meta);
     orders++;NF++;counts();sync();flashScreen();
-    const t=`${side==='buy'?'매수':'매도'} ${s} ${usd(f.q*f.price)}${v.cut?' (한도에 맞게 축소)':''}`;
+    const t=`${side==='buy'?'매수':'매도'} ${s} ${usd(f.q*f.price)}${v.cut?' (한도 맞춰 축소)':''}`;
     say('risk',`체결 ✓ ${t}`,'good');feed(by,`${t} 체결`,`${BYID[by].name} · ${why}`,'on');logFill(by,side,s,f.q*f.price,f.price,f.fee);
-    await wait(700);setStatus(by,'대기');setStatus('risk','대기');
-  }
-  async function flatten(reason,only){
-    const list=Object.entries(pos).filter(([s,p])=>p.q>1e-9&&(!only||only.includes(s)));
-    for(const[s,p]of list){await packet(SPOT.riskFront,SPOT.server,ROLE.risk[2]);const f=submit(s,'sell',p.q);if(f){NF++;counts();sync();say('risk',`${s} 정리 ${usd(f.q*f.price)} · ${reason}`,'warn');feed('risk',`${s} 전량 매도`,`리스크 매니저 · ${reason}`,'warn');logFill('risk','sell',s,f.q*f.price,f.price,f.fee)}}
-  }
-  async function riskCheck(){
-    for(const[s,p]of Object.entries(pos))if(p.q>1e-9&&px[s]<=p.a*(1-C.stop/100)){NK++;counts();setStatus('risk','주의');await flatten('손절 1.5%',[s]);setStatus('risk','대기')}
+    await wait(600);setStatus(by,'대기');setStatus('risk','대기');return true}
+  async function flatten(by,why,only){
+    for(const[s,p]of Object.entries(pos)){if(p.q<=1e-9||(only&&!only.includes(s)))continue;
+      await packet(posOf(by),SPOT.server,ROLE[BYID[by].role][2]);const f=submit(s,'sell',p.q);
+      if(f){NF++;counts();sync();say(by,`${s} 전량 매도 · ${why}`,'warn');feed(by,`${s} 전량 매도 ${usd(f.q*f.price)}`,`${BYID[by].name} · ${why}`,'warn');logFill(by,'sell',s,f.q*f.price,f.price,f.fee);await wait(500)}}}
+  async function safety(){
+    for(const[s,p]of Object.entries(pos))if(p.q>1e-9&&px(s)<=p.a*(1-SC.hard*lev(s)/100)){NK++;counts();setStatus('risk','주의');await flatten('risk',`안전망 손절 −${SC.hard*lev(s)}%`,[s]);setStatus('risk','대기')}
     const r=(eq()/startEq-1)*100;
-    if(r<=-C.loss&&!halted){halted=true;NK++;counts();setStatus('risk','주의');alertBox('손실 한도 도달',`오늘 ${pct(r)} — 전량 청산하고 오늘 매매를 멈춥니다.`,'bad');say('risk','손실 한도 −1% 도달, 전량 청산','bad');await flatten('손실 한도');for(const id in CH)if(id!=='risk')setStatus(id,'대기')}
-    else if(r>=C.target&&!hit){hit=true;NK++;counts();alertBox('하루 목표 달성',`오늘 ${pct(r)} — 신규 매수를 멈추고 청산만 허용합니다.`,'good');say('lead','목표 달성! 오늘은 신규 매수 그만','lead');feed('lead','하루 목표 +0.5% 달성','팀장 · 신규 매수 중단','on')}
+    if(r<=-C.loss&&!halted){halted=true;NK++;counts();setStatus('risk','주의');alertBox('손실 한도 도달',`오늘 ${pct(r)} — 전량 청산하고 오늘 매매를 멈춥니다.`,'bad');await flatten('risk','일일 손실 한도')}
+    else if(r>=C.target&&!hit){hit=true;NK++;counts();alertBox('하루 목표 달성',`오늘 ${pct(r)} — 신규 매수를 멈추고 익절·청산만 허용합니다.`,'good');say('lead','목표 달성! 신규 진입 그만','lead')}}
+  function refreshAnalyses(){for(const s of new Set([...ALL,'SOXL','QLD']))AN[s]=analyze(s,M.bars(s),px(s));}
+  function newsScan(){N.refresh(ALL);const changed={};for(const s of ALL){const v=N.score(s);if(Math.abs(v-(SCORE[s]||0))>=.3)changed[s]=v;SCORE[s]=v}return changed}
+  const deskOf=s=>Object.keys(DESK).find(k=>DESK[k].includes(s));
+  const JUN={sb:'j1',se:'j2',sn:'j3'};
+  function setups(desk){
+    const out=[];
+    for(const s of DESK[desk]){if(pos[s]?.q>1e-9)continue;
+      if(SC.shortMap[s]){const u=SC.shortMap[s];if(pos[u]?.q>1e-9)continue;out.push(entryShort(s,AN[u],SCORE[u]||0))}
+      else{if(Object.entries(SC.shortMap).some(([k,v])=>v===s&&pos[k]?.q>1e-9))continue;out.push(entryLong(AN[s],SCORE[s]||0))}}
+    return out}
+  function renderWatch(){
+    const all=Object.keys(DESK).flatMap(setups).filter(x=>x.checks.length===4).sort((a,b)=>passed(b)-passed(a)).slice(0,7);
+    $('watch').innerHTML=all.length?all.map(x=>`<li><b>${x.inst}</b><span class="side ${x.side}">${x.side==='long'?'롱':'숏'}</span><span class="dots">${x.checks.map(c=>`<i class="${c[1]?'ok':''}" title="${esc(c[0]+': '+c[2])}"></i>`).join('')}</span><small>${passed(x)}/4</small></li>`).join(''):'<li class="empty">조건을 2개 이상 통과한 종목이 아직 없어요.</li>';
+    const thin=ALL.filter(s=>AN[s]&&!AN[s].enough);$('watchNote').textContent=thin.length?`${thin.join(', ')}: 데이터 부족으로 진입 보류`:'';
   }
-  async function advance(to){
-    while(CLOCK.min<to){await wait(110);CLOCK.min++;
-      for(const s in px)px[s]*=1+G()*VOL(s)/Math.sqrt(390);
-      if(CLOCK.min%3===0){pushHist();sync()}showClock();
-      if(CLOCK.min%5===0&&!halted)await riskCheck();
+  async function decide(){
+    const changed=newsScan();refreshAnalyses();renderWatch();
+    for(const desk of ['sb','se','sn']){
+      if(halted)break;const j=JUN[desk];
+      // 뉴스
+      const ch=Object.entries(changed).filter(([s])=>DESK[desk].includes(s));
+      if(ch.length){const[s,v]=ch[0],it=N.latest(s);const good=it?it.sc>0:v>0;await say(j,`${s} ${good?'호재':'악재'}: ${it?it.t:''}`,good?'good':'bad',3000);feed(j,`${s} ${good?'호재':'악재'} 뉴스 · 수급 점수 ${v>=0?'+':''}${v.toFixed(1)}`,`${BYID[j].name} · ${it?it.t:''}`,v>=0?'on':'bad')}
+      // 청산 판단
+      for(const s of DESK[desk]){const p=pos[s];if(!p||p.q<=1e-9)continue;const sig=p.m.signal||s,a=AN[sig];if(!a)continue;
+        const[why,kind]=exitReason(p.m,px(s),p.a,a,SCORE[sig]||0,C.fee);
+        if(why){setStatus(desk,'일하는 중');await say(desk,`${s} ${kind==='tp'?'익절':'손절'}: ${why}`,kind==='tp'?'good':'bad',3000);await flatten(desk,why,[s]);setStatus(desk,'대기')}}
+      // 물타기
+      for(const s of DESK[desk]){const p=pos[s];if(!p||p.q<=1e-9||p.m.side!=='long'||!AN[s])continue;const ad=addCheck(p.m,AN[s]);if(!ad)continue;
+        await walk(j,[CH[desk].s.seat[0]+.2,CH[desk].s.seat[1]+.9]);setStatus(j,'보고 중');await say(j,`${s} 추가매수 제안: ${ad.why}`,'say',3000);await wait(400);
+        await say(desk,'매물대 + 전환 신호 확인, 1회 추매 승인','good');feed(j,`${s} 추가매수 선보고 → 승인`,`${BYID[j].name} → ${BYID[desk].name} · ${ad.why}`,'on');await home(j);
+        if(await order(j,s,'buy',eq()*SC.entry/(lev(s))/100,`물타기: ${ad.why}`)){p.m.adds=(p.m.adds||0)+1;p.m.key=ad.lv}}
+      // 신규 진입
+      const list=setups(desk),cands=list.filter(allOk),watch=list.filter(x=>!allOk(x)&&x.checks.length===4&&passed(x)>=3);
+      if(!cands.length&&!watch.length)continue;
+      await walk(j,[CH[desk].s.seat[0]+.2,CH[desk].s.seat[1]+.9]);setStatus(j,'보고 중');
+      if(!cands.length){const w=watch[0],miss=w.checks.find(c=>!c[1]);await say(j,`${w.inst} 3/4 관찰 중 — ${miss[0]} 대기 (${miss[2]})`,'say',3200);await wait(300);
+        await say(desk,'계속 지켜봐, 조건 다 맞으면 다시 보고','say');feed(j,`${w.inst} 관찰 3/4`,`${BYID[j].name} → ${BYID[desk].name} · ${miss[0]} 대기`);await home(j);setStatus(j,'대기');continue}
+      for(const x of cands){
+        const n=eq()*SC.entry/lev(x.inst)/100,kind=x.side==='short'?'숏(인버스)':'롱';
+        await say(j,`${x.inst} ${kind} 진입 제안 — 4/4 통과 · ${x.checks[3][2]}`,'say',3200);await wait(400);
+        await say(desk,`체크리스트 4/4 확인, ${usd(n)} 승인`,'good');feed(j,`${x.inst} ${kind} 선보고 → 승인`,x.checks.map(c=>c[2]).join(' · '),'on');
+        await home(j);await order(j,x.inst,'buy',n,x.checks.map(c=>c[0]).join('·')+' 충족',{side:x.side,signal:x.sig,entry:px(x.inst),key:x.key,adds:0});}
+      setStatus(j,'대기');
     }
   }
+  async function advance(to){while(CLOCK.min<to){await wait(110);CLOCK.min++;
+      if(CLOCK.min%5===0){M.stepTo(CLOCK.min);pushHist();sync();if(!halted)await safety()}showClock()}}
   async function day(d){
-    const close=EARLY.has(d)?13*60:16*60,last=weekLast(d),noEntryAt=close-C.noEntry,flatAt=close-C.flat;
-    CLOCK={date:d,min:9*60+25,raw:''};showClock();$('mkt').textContent=`${WD[dt(d).getUTCDay()]}요일 장중 · ${hhmm(close)} 마감${EARLY.has(d)?' (조기 폐장)':''}`;
+    const close=closeMin(d),last=weekLast(d),noEntryAt=close-C.noEntry,flatAt=close-C.flat;
+    if(M.day!==d)M.newDay(d);
+    CLOCK={date:d,min:9*60+30,raw:''};showClock();$('mkt').textContent=`${WD[dt(d).getUTCDay()]}요일 장중 · ${hhmm(close)} 마감${EARLY.has(d)?' (조기 폐장)':''}`;
     orders=0;halted=false;hit=false;block='';startEq=eq();sync();
     for(const id in CH){setStatus(id,'대기');setNow(id,'출근 완료')}
-    alertBox(`${d.slice(5)} 장 시작`,last?`이번 주 마지막 거래일이에요. ${hhmm(noEntryAt)} ET부터 매수 금지, ${hhmm(flatAt)} ET 전량 청산.`:'포지션은 필요하면 다음 거래일로 넘길 수 있어요.',last?'warn':'');
-    // 지난주 포지션
+    alertBox(`${d.slice(5)} 장 시작`,last?`이번 주 마지막 거래일 — ${hhmm(noEntryAt)} ET부터 매수 금지, ${hhmm(flatAt)} ET 전량 청산.`:'1시간봉이 마감될 때마다 체크리스트를 확인합니다.',last?'warn':'');
     const stale=Object.entries(pos).filter(([,p])=>p.q>1e-9&&p.o&&weekKey(p.o)!==weekKey(d)).map(([s])=>s);
-    if(stale.length){say('risk','지난주 포지션 발견, 먼저 정리','warn');await flatten('주간 규칙',stale)}
-    // 아침 회의
-    feed('lead','아침 회의 — 시황 보고',`${d} · 팀장실`);
-    await Promise.all([walk('sb',SPOT.meet[0]),walk('sg',SPOT.meet[1])]);
-    for(const id of ['lead','sb','sg'])setStatus(id,'회의 중');
-    const rep={},alloc={};
-    for(const id of ['sb','sg']){const syms=BYID[id].syms,up=syms.filter(s=>px[s]>prev[s]);const bull=up.length*2>=syms.length;
-      rep[id]=up.slice(0,2);alloc[id]=bull?30:10;
-      await say(id,`상승 ${up.length}/${syms.length} · ${bull?'강세':'약세'} · 관심 ${up.slice(0,2).join(', ')||'없음'}`,'say',3200);await wait(1600);
-      feed(id,`${BYID[id].short} 시황: ${bull?'강세':'약세'}`,`${BYID[id].name} · 관심 ${up.slice(0,2).join(', ')||'없음'}`)}
-    const held=Object.values(pos).filter(p=>p.q>1e-9).length;
-    await say('lead',`빅테크 ${alloc.sb}%, 성장주 ${alloc.sg}% 배분.${held?` 보유 ${held}종목 점검.`:''} 손절 엄수`,'lead',3400);await wait(1600);
-    feed('lead',`전략 지시: 빅테크 ${alloc.sb}% · 성장주 ${alloc.sg}%`,'팀장 · 워치리스트 중심 분할 진입','on');
-    await Promise.all([home('sb'),home('sg')]);
-    for(const id of ['lead','sb','sg'])setStatus(id,'일하는 중');
-    // 라운드
-    const st=9*60+45,en=close-C.noEntry,times=[...Array(C.rounds)].map((_,i)=>Math.round(st+(en-st)*i/(C.rounds-1)));
-    for(const[i,t]of times.entries()){
-      if(halted)break;await advance(t);if(last&&CLOCK.min>=noEntryAt&&!block){block='주 마지막 거래일 마감 전 — 신규 매수 금지';say('risk','지금부터 신규 매수 금지','warn')}
-      feed('sys',`${i+1}라운드 시작`,`${hhmm(t)} ET · 평가금액 ${usd(eq())}`);
-      for(const j of ['j1','j2','j3']){
-        if(halted)break;const boss=BYID[j].boss,syms=BYID[boss].syms;
-        const best=syms.reduce((a,s)=>px[s]/prev[s]>px[a]/prev[a]?s:a);const ch=(px[best]/prev[best]-1)*100;
-        await walk(j,[CH[boss].s.seat[0]+.2,CH[boss].s.seat[1]+.9]);setStatus(j,'보고 중');
-        await say(j,`${best} 매수 $300 제안 — 당일 ${pct(ch)}`);await wait(500);
-        const ok=rep[boss].includes(best);
-        await say(boss,ok?'워치리스트와 일치, 승인':'워치리스트 밖이라 반려',ok?'good':'bad');
-        feed(j,`${best} 매수 선보고 → ${ok?'승인':'반려'}`,`${BYID[j].name} → ${BYID[boss].name}`,ok?'on':'bad');
-        await home(j);setStatus(j,'일하는 중');
-        if(ok)await order(j,best,'buy',300,`당일 ${pct(ch)} 강세`);
-        setStatus(j,'대기');
-      }
-      for(const sid of ['sb','sg']){
-        if(halted)break;const syms=BYID[sid].syms;
-        for(const s of syms){const p=pos[s];if(p&&p.q>1e-9&&px[s]>=p.a*1.01){await say(sid,`${s} ${pct((px[s]/p.a-1)*100)} 익절`,'good');await order(sid,s,'sell',p.q*px[s],'익절')}}
-        const each=startEq*alloc[sid]/100/C.rounds/Math.max(rep[sid].length,1)/3;
-        for(const s of rep[sid]){await order(sid,s,'buy',each,'지시 기반 분할 진입')}
-      }
-      if(!halted)await riskCheck();
+    if(stale.length)await flatten('risk','주간 청산 누락분',stale);
+    newsScan();refreshAnalyses();renderWatch();
+    feed('lead','아침 회의',`${d} · 팀장실`);
+    await Promise.all([walk('sb',SPOT.meet[0]),walk('se',SPOT.meet[1]),walk('sn',SPOT.meet[2])]);
+    for(const id of ['lead','sb','se','sn'])setStatus(id,'회의 중');
+    for(const id of ['sb','se','sn']){const ok=DESK[id].filter(s=>AN[s]?.enough),up=ok.filter(s=>AN[s].up>=3).length,dn=ok.filter(s=>AN[s].down>=3).length,thin=DESK[id].filter(s=>AN[s]&&!AN[s].enough);
+      await say(id,`상승 추세 ${up} · 하락 추세 ${dn}${thin.length?` · ${thin.join(',')} 데이터 부족`:''}`,'say',3000);await wait(1500);feed(id,`${BYID[id].short} 아침 보고`,`상승 ${up} · 하락 ${dn}`)}
+    const mk=Math.min(SCORE.QLD||0,SCORE.SOXL||0);
+    await say('lead',mk<=-.3?'시장 악재 — 롱 데스크 한도 축소, 숏 관찰':'규칙 신호만 따라 선별 진입. 손절 엄수','lead',3200);await wait(1500);
+    feed('lead','전략 지시',mk<=-.3?'롱 축소':'선별 진입','on');
+    await Promise.all([home('sb'),home('se'),home('sn')]);for(const id of ['lead','sb','se','sn'])setStatus(id,'일하는 중');
+    // 1시간봉 마감마다 판단
+    const ends=[];for(let m=10*60+30;m<close;m+=60)ends.push(m);
+    let fl=false;
+    for(const t of ends){
+      if(halted)break;
+      if(last&&!block&&t>=noEntryAt){await advance(noEntryAt);block='주 마지막 거래일 — 신규 매수 금지';say('risk','지금부터 신규 매수 금지','warn')}
+      if(last&&!fl&&t>=flatAt){await advance(flatAt);fl=true;await weekly()}
+      await advance(t);feed('sys',`${hhmm(t)} 1시간봉 마감`,`평가금액 ${usd(eq())} · 판단 시작`);await decide();
     }
-    if(last){
-      if(!halted)await advance(flatAt);
-      block='주간 청산 완료';const has=Object.values(pos).some(p=>p.q>1e-9);
-      alertBox('주말 전 전량 청산',`${hhmm(flatAt)} ET — 이번 주 포지션을 모두 정리합니다.`,'warn');setStatus('risk','주의');
-      say('risk',has?'주말 전 전 포지션 청산':'정리할 포지션 없음','warn');if(has)await flatten('주간 청산');setStatus('risk','대기');
-    }
+    if(last&&!block){await advance(noEntryAt);block='주 마지막 거래일 — 신규 매수 금지';say('risk','지금부터 신규 매수 금지','warn')}
+    if(last&&!fl){await advance(flatAt);await weekly()}
     await advance(close);
-    const r=(eq()/startEq-1)*100;
-    $('mkt').textContent='장 마감';
-    await say('lead',`오늘 ${pct(r)} · 주문 ${orders}건 · 수고했어요`,'lead',4000);
-    feed('lead',`장 마감 ${pct(r)}`,`팀장 · 수수료 누적 ${usd(fees,2)}`,r>=0?'on':'bad');
-    for(const id in CH){setStatus(id,'퇴근');setNow(id,'퇴근')}
-    await wait(3500);
-    // 야간: 갭
-    for(const s in px){prev[s]=px[s];px[s]*=1+G()*VOL(s)*.5}
+    const r=(eq()/startEq-1)*100;$('mkt').textContent='장 마감';
+    await say('lead',`오늘 ${pct(r)} · 주문 ${orders}건${Object.values(pos).some(p=>p.q>1e-9)?' · 포지션 이월':''}`,'lead',3600);
+    feed('lead',`장 마감 ${pct(r)}`,`누적 수수료 ${usd(fees,2)}`,r>=0?'on':'bad');
+    for(const id in CH){setStatus(id,'퇴근');setNow(id,'퇴근')}await wait(2500);
   }
-  (async()=>{let d=todayET();if(!isTD(d))d=nextTD(d);startEq=eq();sync();
-    for(;;){await day(d);d=nextTD(d)}})();
+  async function weekly(){block='주간 청산 완료';const has=Object.values(pos).some(p=>p.q>1e-9);alertBox('주말 전 전량 청산','이번 주 포지션을 모두 정리합니다.','warn');setStatus('risk','주의');
+    say('risk',has?'주말 전 전 포지션 청산':'정리할 포지션 없음','warn');if(has)await flatten('risk','주말 전 청산');setStatus('risk','대기')}
+  (async()=>{let d=start;startEq=eq();sync();for(;;){await day(d);d=nextTD(d)}})();
 }
 
 /* ================= 라이브 모드 (내 PC의 serve_office.py) ================= */
-const MAP={team_lead:'lead',senior_bigtech:'sb',senior_growth:'sg',junior_1:'j1',junior_2:'j2',junior_3:'j3'};
+const MAP={team_lead:'lead',senior_bigtech:'sb',senior_etf:'se',senior_new:'sn',junior_1:'j1',junior_2:'j2',junior_3:'j3'};
 const who=by=>MAP[by]||(String(by||'').startsWith('risk')||String(by||'').startsWith('weekly')?'risk':BYID[by]?by:'risk');
 function live(){
   $('modeDot').className='dot';$('modeTxt').className='live';$('modeTxt').textContent='실시간 · 내 PC';
@@ -588,15 +760,21 @@ function live(){
       case '시세':{SNAP={...SNAP,...d,startEq:dayStart??d.equity};SNAP.positions=d.positions||{};pushHist();renderKpis();drawScreen();if(d.entry_blocked)setStatus('risk','주의');return}
       case '장시작':dayStart=d.equity;$('mkt').textContent=`${d.weekday}요일 장중 · ${d.close_et} 마감`;alertBox(`${(d.date||'').slice(5)} 장 시작`,d.week_last_session?'이번 주 마지막 거래일 — 마감 전 전량 청산':'포지션 이월 가능',d.week_last_session?'warn':'');for(const id in CH)setStatus(id,'대기');feed('lead','장 시작',`평가금액 ${usd(d.equity||0)}`);return;
       case '공지':alertBox('공지',d.message,'warn');feed('sys','공지',d.message,'warn');return;
-      case '시황보고':{await walk(by,by==='sb'?SPOT.meet[0]:SPOT.meet[1]);setStatus(by,'회의 중');setStatus('lead','회의 중');const rp=d.report||{};await say(by,rp.summary||rp.error||'보고',rp.error?'bad':'say',3200);feed(by,`${BYID[by].short} 시황 보고`,rp.summary||'');return}
-      case '전략지시':{const v=d.directive||{};await say('lead',v.stance||v.error||'오늘의 전략','lead',3400);feed('lead','전략 지시',JSON.stringify(v.allocation_pct||{}),'on');await Promise.all([home('sb'),home('sg')]);for(const id of ['lead','sb','sg'])setStatus(id,'일하는 중');return}
-      case '라운드':feed('sys',`${d.n}라운드`,`평가금액 ${usd(d.equity||0)}`);return;
-      case '선보고':{const to=who(d.to);await walk(by,[CH[to].s.seat[0]+.2,CH[to].s.seat[1]+.9]);setStatus(by,'보고 중');const p=d.proposal||{};await say(by,`${p.symbol} ${p.side==='sell'?'매도':'매수'} $${p.notional} 제안`);return}
+      case '시황보고':{await walk(by,SPOT.meet[['sb','se','sn'].indexOf(by)]||SPOT.meet[1]);setStatus(by,'회의 중');setStatus('lead','회의 중');const rp=d.report||{};await say(by,rp.summary||rp.error||'보고',rp.error?'bad':'say',3200);feed(by,`${BYID[by].short} 시황 보고`,rp.summary||'');return}
+      case '전략지시':{const v=d.directive||{};await say('lead',v.stance||v.error||'오늘의 전략','lead',3400);feed('lead','전략 지시',JSON.stringify(v.allocation_pct||{}),'on');await Promise.all([home('sb'),home('se'),home('sn')]);for(const id of ['lead','sb','se','sn'])setStatus(id,'일하는 중');return}
+      case '라운드':feed('sys',`1시간봉 마감 #${d.n}`,`평가금액 ${usd(d.equity||0)}`);return;
+      case '분석':{const rows=d.setups||[];
+        $('watch').innerHTML=rows.map(r=>`<li><b>${esc(r.instrument)}</b><span class="side ${r.side}">${r.side==='long'?'롱':'숏'}</span><span class="dots">${r.checks.map(c=>`<i class="${c.ok?'ok':''}" title="${esc(c.name+': '+c.detail)}"></i>`).join('')}</span><small>${r.passed}/4</small></li>`).join('')||'<li class="empty">표시할 종목이 없어요.</li>';
+        $('watchNote').textContent=(d.thin||[]).length?`${d.thin.join(', ')}: 데이터 부족으로 진입 보류`:'';return}
+      case '뉴스':{await say(by,`${(d.changed||[]).join(', ')} 뉴스: ${d.summary||''}`,'warn',3000);feed(by,'뉴스 수급 변화',(d.changed||[]).join(', '),'warn');return}
+      case '스캔':{const to=who(d.to);if(!(d.candidates||[]).length&&(d.watch||[]).length){await say(by,`관찰: ${(d.watch||[]).slice(0,3).join(', ')}`,'say',2200)}feed(by,'스캔',`관찰 ${(d.watch||[]).join(', ')||'—'} · 후보 ${(d.candidates||[]).join(', ')||'—'}`);return}
+      case '청산판단':{await say(by,`${d.symbol} ${d.kind==='tp'?'익절':'정리'}: ${d.reason}`,d.kind==='tp'?'good':'bad',3000);feed(by,`${d.symbol} ${d.kind==='tp'?'익절':'손절·정리'}`,d.reason,d.kind==='tp'?'on':'bad');return}
+      case '선보고':{const to=who(d.to);await walk(by,[CH[to].s.seat[0]+.2,CH[to].s.seat[1]+.9]);setStatus(by,'보고 중');const p=d.proposal||{};await say(by,`${p.symbol} ${p.kind||''} ${usd(p.notional||0)} 제안`,'say',3000);feed(by,`${p.symbol} ${p.kind||''} 선보고`,(p.thesis||'').slice(0,120));return}
       case '승인':case '반려':{const j=who(d.junior);const ok=r.event==='승인';await say(by,(d.review&&d.review.comment)||d.comment||r.event,ok?'good':'bad');feed(j,`선보고 → ${r.event}`,`${BYID[j].name} → ${BYID[by].name}`,ok?'on':'bad');await home(j);setStatus(j,'대기');return}
       case '체결':{await packet(posOf(by),SPOT.riskFront,ROLE[BYID[by].role][2]);await packet(SPOT.riskFront,SPOT.server,ROLE.risk[2]);NF++;counts();flashScreen();const amt=(d.qty||0)*(d.price||0);
         say('risk',`체결 ✓ ${d.side==='buy'?'매수':'매도'} ${d.symbol} ${usd(amt)}`,'good');feed(by,`${d.side==='buy'?'매수':'매도'} ${d.symbol} ${usd(amt)} 체결`,`${BYID[by].name} · ${d.why||''}`,'on');logFill(by,d.side,d.symbol,amt,d.price||0,null);await wait(500);return}
       case '주문거부':{await packet(posOf(by),SPOT.riskFront,ROLE[BYID[by].role][2]);NR++;counts();say('risk',`${d.symbol||''} 거부: ${d.reason}`,'bad');feed('risk',`${d.symbol||''} 주문 거부`,`${BYID[by].name} · ${d.reason}`,'bad');await wait(500);return}
-      case '청산':{NF++;counts();say('risk',`${d.symbol} 정리 · ${d.by}`,'warn');feed('risk',`${d.symbol} 전량 매도`,`리스크 매니저 · ${d.by}`,'warn');logFill('risk','sell',d.symbol,(d.qty||0)*(d.price||0),d.price||0,null);await wait(600);return}
+      case '청산':{NF++;counts();say('risk',`${d.symbol} 정리 · ${d.why||d.by}`,'warn');feed('risk',`${d.symbol} 전량 매도`,`${d.why||d.by}`,'warn');logFill('risk','sell',d.symbol,(d.qty||0)*(d.price||0),d.price||0,null);await wait(600);return}
       case '리스크':NK++;counts();setStatus('risk','주의');alertBox('리스크',d.message,'bad');await say('risk',d.message,'bad',3200);feed('risk','리스크 알림',d.message,'bad');setStatus('risk','대기');return;
       case '주간청산':alertBox('주말 전 전량 청산',d.message,'warn');await say('risk',d.message,'warn');return;
       case '장마감':$('mkt').textContent='장 마감';await say('lead',`오늘 ${pct(d.pnl_pct||0,3)} · 주문 ${d.orders}건`,'lead',3600);feed('lead',`장 마감 ${pct(d.pnl_pct||0,3)}`,`수수료 ${usd(d.fees_usd||0,2)}`,(d.pnl_pct||0)>=0?'on':'bad');for(const id in CH)setStatus(id,'퇴근');return;

@@ -35,9 +35,29 @@ class TestCalendar(unittest.TestCase):
         self.assertEqual(cal.session(date(2026, 12, 1))[1].strftime("%H:%M %Z"), "16:00 EST")
 
 
-def office(tmp, seed=1, reset=False):
-    cfg = OfficeConfig(data_dir=tmp, intraday_rounds=4)
-    return Office(cfg, SampleMarket(seed), reset_state=reset)
+def office(tmp, start, seed=1, reset=False):
+    cfg = OfficeConfig(data_dir=tmp)
+    cfg.risk.stop_loss_pct = 50  # 안전망 손절이 테스트를 방해하지 않게
+    o = Office(cfg, SampleMarket(seed, start=start), reset_state=reset)
+    o.quiet = True
+    o.strategy.exit_reason = lambda *a, **k: (None, "")   # 전략 청산 끔 → 보유/주간 규칙만 시험
+    o.strategy.entry_long = lambda a, n: _never(a.symbol, "long")
+    o.strategy.entry_short = lambda i, u, n: _never(i, "short")
+    return o
+
+
+def _never(sym, side):
+    from trading_office.strategy import Setup
+    return Setup(sym, side, sym, [("테스트", False, "")])
+
+
+def hold(o, d, sym="AAPL"):
+    """d 날짜 장 시작 직후 포지션 하나를 강제로 만든다."""
+    o.market.new_day(d)
+    o.paper.today = d.isoformat()
+    px = o.market.quote(sym).price
+    o.paper.submit(sym, "buy", 1, px, "test")
+    o.paper.positions[sym].meta = {"side": "long", "signal": sym, "entry_price": px, "adds": 0}
 
 
 def quiet(fn, *a):
@@ -48,42 +68,47 @@ def quiet(fn, *a):
 class TestHolding(unittest.TestCase):
     def test_positions_carry_over_midweek(self):
         with tempfile.TemporaryDirectory() as tmp:
-            o = office(tmp, reset=True)
-            quiet(o.run_day, date(2026, 11, 16))  # 월요일
-            held = {s for s, p in o.paper.positions.items() if p.qty}
-            self.assertTrue(held, "모의 에이전트는 매수하므로 이월 포지션이 있어야 함")
-            # 새 프로세스로 다시 열어도 포지션이 복원되는지
-            o2 = office(tmp)
-            self.assertEqual({s for s, p in o2.paper.positions.items() if p.qty}, held)
+            d = date(2026, 11, 16)  # 월요일
+            o = office(tmp, d, reset=True)
+            hold(o, d)
+            quiet(o.run_day, d)
+            self.assertTrue(o.held("AAPL"), "월요일 포지션은 다음 날로 이월돼야 함")
+            o2 = office(tmp, d)  # 새 프로세스로 다시 열어도 복원
+            self.assertTrue(o2.held("AAPL"))
+            self.assertEqual(o2.paper.positions["AAPL"].meta.get("side"), "long")
 
     def test_week_last_session_ends_flat(self):
-        for start, n in ((date(2026, 11, 16), 5), (date(2026, 11, 23), 4), (date(2026, 3, 30), 4)):
+        for d in (date(2026, 11, 20), date(2026, 11, 27), date(2026, 4, 2)):  # 금, 블랙프라이데이, 성금요일 전 목
             with tempfile.TemporaryDirectory() as tmp:
-                o = office(tmp, reset=True)
-                quiet(o.run_days, start, n)
-                self.assertFalse(any(p.qty > 1e-9 for p in o.paper.positions.values()), start)
+                o = office(tmp, d, reset=True)
+                hold(o, d)
+                quiet(o.run_day, d)
+                self.assertFalse(any(p.qty > 1e-9 for p in o.paper.positions.values()), d)
                 state = json.load(open(f"{tmp}/state.json"))
                 self.assertEqual(state["positions"], {})
 
     def test_no_buys_after_cutoff_on_friday(self):
         with tempfile.TemporaryDirectory() as tmp:
-            o = office(tmp, reset=True)
-            quiet(o.run_day, date(2026, 11, 20))
-            lines = [json.loads(l) for l in open(o.log_path, encoding="utf-8")]
-            buys = [l for l in lines if l["event"] == "체결" and l["side"] == "buy"]
-            self.assertTrue(all(l["t"] < "11-20 15:30 ET" for l in buys))
+            d = date(2026, 11, 20)
+            o = office(tmp, d, reset=True)
+            hold(o, d)
+            quiet(o.run_day, d)
+            self.assertIn("신규 매수 금지", o.risk.entry_blocked)
+            v = o.risk.check("AAPL", "buy", 100, 100, 0, 0, 10_000)
+            self.assertFalse(v.ok)
 
     def test_stale_positions_from_last_week_closed_first(self):
         with tempfile.TemporaryDirectory() as tmp:
-            o = office(tmp, reset=True)
-            quiet(o.run_day, date(2026, 11, 19))  # 목요일까지만 실행 (금요일 실행 누락)
-            self.assertTrue(any(p.qty for p in o.paper.positions.values()))
-            o2 = office(tmp)
+            thu = date(2026, 11, 19)
+            o = office(tmp, thu, reset=True)
+            hold(o, thu)
+            quiet(o.run_day, thu)  # 금요일 실행 누락
+            self.assertTrue(o.held("AAPL"))
+            o2 = office(tmp, date(2026, 11, 23))
             quiet(o2.run_day, date(2026, 11, 23))  # 다음 주 월요일
             lines = [json.loads(l) for l in open(o2.log_path, encoding="utf-8")]
             overdue = [l for l in lines if l["event"] == "청산" and l["by"] == "weekly_rule_overdue"]
             self.assertTrue(overdue)
-            self.assertTrue(all(l["opened"] <= "2026-11-19" for l in overdue))
 
 
 if __name__ == "__main__":

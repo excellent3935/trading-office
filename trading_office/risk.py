@@ -71,6 +71,7 @@ class RiskManager:
         reason = "한도에 맞게 축소" if cap < notional else ""
         return Verdict(True, cap / price, reason)
 
-    def stop_losses(self, positions: dict, prices: dict) -> list[str]:
+    def stop_losses(self, positions: dict, prices: dict, mult=lambda s: 1) -> list[str]:
+        """안전망 손절: 평균단가 대비 stop_loss_pct × mult(s) 이상 하락한 종목."""
         return [s for s, p in positions.items()
-                if p.qty and prices[s] <= p.avg_price * (1 - self.l.stop_loss_pct / 100)]
+                if p.qty and s in prices and prices[s] <= p.avg_price * (1 - self.l.stop_loss_pct * mult(s) / 100)]

@@ -24,6 +24,7 @@ from pathlib import Path
 from trading_office import calendar_us as cal
 from trading_office.config import OfficeConfig
 from trading_office.market import SampleMarket, YahooMarket
+from trading_office.news import SampleNews, YahooNews
 from trading_office.office import Office
 
 DOCS = Path(__file__).parent / "docs"
@@ -121,18 +122,23 @@ def main():
     ap.add_argument("--market", choices=["sample", "yahoo"], default="sample")
     ap.add_argument("--date", default=None)
     ap.add_argument("--days", type=int, default=1)
-    ap.add_argument("--rounds", type=int, default=6)
     ap.add_argument("--reset", action="store_true")
     ap.add_argument("--realtime", action="store_true")
     ap.add_argument("--live", action="store_true", help="실계좌 모드(주문마다 터미널 승인)")
     ap.add_argument("--start-delay", type=float, default=3.0, help="브라우저를 열 시간을 주고 시작(초)")
     a = ap.parse_args()
 
-    cfg = OfficeConfig(llm=a.llm, intraday_rounds=a.rounds, realtime=a.realtime,
+    cfg = OfficeConfig(llm=a.llm, realtime=a.realtime,
                        mode="live" if a.live else "paper")
     symbols = sorted({s for v in cfg.team.seniors.values() for s in v["symbols"]})
-    market = YahooMarket(symbols) if a.market == "yahoo" else SampleMarket()
-    office = Office(cfg, market, reset_state=a.reset)
+    start = date.fromisoformat(a.date) if a.date else cal.trading_day_on_or_after(cal.today_et())
+    if a.market == "yahoo":
+        if not a.realtime:
+            ap.error("실시세(yahoo)는 --realtime 과 함께 실행하세요")
+        market, news = YahooMarket(symbols), YahooNews()
+    else:
+        market, news = SampleMarket(start=start), SampleNews()
+    office = Office(cfg, market, reset_state=a.reset, news=news)
     hub = Hub()
     office.listeners.append(hub.publish)
 
@@ -142,7 +148,6 @@ def main():
     print(f"사무실 화면: http://127.0.0.1:{a.port}  (Ctrl+C로 종료)")
 
     time.sleep(a.start_delay)
-    start = date.fromisoformat(a.date) if a.date else cal.trading_day_on_or_after(cal.today_et())
     try:
         office.run_days(start, a.days)
         hub.done = True

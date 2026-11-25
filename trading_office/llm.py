@@ -41,46 +41,48 @@ class ClaudeCLI(LLM):
 
 
 class MockLLM(LLM):
-    """역할별로 그럴듯한 JSON을 돌려주는 가짜 LLM. 매매 판단 품질은 의미 없음."""
+    """오프라인 테스트용 규칙 기반 '두뇌'. 판단 품질은 의미 없고, 흐름 확인용이다.
+    - news_score: 키워드 사전으로 감성 점수
+    - market_report: 분석 요약을 문장으로
+    - daily_strategy: 데스크별 20% 한도(시장 뉴스가 나쁘면 롱 데스크 10%)
+    - junior_review: 체크리스트가 모두 통과면 승인
+    """
 
     def ask(self, role, system, user):
+        from .news import lexicon_score
         data = extract_json(user) or {}
-        if role.startswith("senior") and "market_report" in system:
-            quotes = data.get("quotes", [])
-            up = [q["symbol"] for q in quotes if q["change_pct"] > 0]
-            return json.dumps({"summary": f"상승 {len(up)}/{len(quotes)}종목",
-                               "bias": "bullish" if len(up) * 2 >= len(quotes) else "bearish",
-                               "watchlist": up[:2]}, ensure_ascii=False)
-        if role == "team_lead":
+        task = re.search(r"\[task:(\w+)\]", system)
+        task = task.group(1) if task else ""
+        if task == "news_score":
+            hl = data.get("headlines", {})
+            scores = {s: round(lexicon_score(h), 2) for s, h in hl.items()}
+            bad = [s for s, v in scores.items() if v <= -0.3]
+            return json.dumps({"scores": scores, "summary": f"악재 {', '.join(bad)}" if bad else "특이 악재 없음"},
+                              ensure_ascii=False)
+        if task == "market_report":
+            an = data.get("analyses", {})
+            ok = {s: a for s, a in an.items() if a.get("enough")}
+            up = [s for s, a in ok.items() if a.get("slope_up", 0) >= 3]
+            down = [s for s, a in ok.items() if a.get("slope_down", 0) >= 3]
+            watch = [s for s, a in ok.items() if (a.get("rsi1h") or 50) <= 35 or (a.get("rsi1h") or 50) >= 65]
+            thin = [s for s, a in an.items() if not a.get("enough")]
+            bias = "bullish" if len(up) > len(down) else "bearish" if len(down) > len(up) else "neutral"
+            summary = f"상승 추세 {len(up)} · 하락 추세 {len(down)}" + (f" · 관찰 {', '.join(watch[:3])}" if watch else "") \
+                + (f" · 데이터 부족 {', '.join(thin)}" if thin else "")
+            return json.dumps({"summary": summary, "bias": bias, "watch": watch[:3], "risks": ""}, ensure_ascii=False)
+        if task == "daily_strategy":
             reports = data.get("reports", {})
-            alloc = {k: (30 if v.get("bias") == "bullish" else 10) for k, v in reports.items()}
-            return json.dumps({"stance": "선별적 롱, 목표 도달 시 즉시 정리",
-                               "allocation_pct": alloc,
-                               "instructions": {k: "워치리스트 중심 분할 진입, 손절 엄수" for k in reports}},
+            mkt = data.get("risk_state", {}).get("market_news", 0)
+            alloc = {k: (10 if mkt <= -0.3 and k != "senior_etf" else 20) for k in reports}
+            stance = "악재 경계 — 롱 축소, 숏 관찰" if mkt <= -0.3 else "규칙 신호만 따라 선별 진입"
+            return json.dumps({"stance": stance, "allocation_pct": alloc,
+                               "instructions": {k: "체크리스트 4개 모두 통과한 건만" for k in reports}, "no_trade": []},
                               ensure_ascii=False)
-        if role.startswith("junior"):
-            q = max(data.get("quotes", [{}]), key=lambda x: x.get("change_pct", -99))
-            return json.dumps({"symbol": q.get("symbol"), "side": "buy", "notional": 300,
-                               "thesis": f"당일 강세 {q.get('change_pct')}%, 모멘텀 추종"},
+        if task == "junior_review":
+            st = data.get("setup", {})
+            ok = all(c.get("ok") for c in st.get("checks", [])) if st.get("checks") else st.get("kind") == "add"
+            return json.dumps({"approved": bool(ok), "comment": "체크리스트 전부 통과, 승인" if ok else "조건 미충족, 반려"},
                               ensure_ascii=False)
-        if "junior_review" in system:
-            p = data.get("proposal", {})
-            ok = p.get("symbol") in data.get("watchlist", [])
-            return json.dumps({"approved": ok, "notional": p.get("notional", 0) if ok else 0,
-                               "comment": "워치리스트 일치, 승인" if ok else "워치리스트 밖, 반려"},
-                              ensure_ascii=False)
-        if "trade_plan" in system:
-            wl = data.get("watchlist", [])
-            budget = data.get("budget_usd", 0)
-            px = {q["symbol"]: q["price"] for q in data.get("quotes", [])}
-            # 보유 종목 중 +1% 이상 수익이면 익절(전량 매도), 아니면 계속 보유
-            orders = [{"symbol": s, "side": "sell", "notional": round(p["qty"] * px[s], 2),
-                       "reason": f"익절 {(px[s] / p['avg'] - 1) * 100:+.2f}%"}
-                      for s, p in data.get("positions", {}).items()
-                      if s in px and p.get("avg") and px[s] >= p["avg"] * 1.01]
-            orders += [{"symbol": s, "side": "buy", "notional": round(budget / max(len(wl), 1) / 3, 2),
-                        "reason": "지시 기반 분할 진입"} for s in wl]
-            return json.dumps({"orders": orders}, ensure_ascii=False)
         return "{}"
 
 
