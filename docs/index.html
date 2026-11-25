@@ -199,9 +199,9 @@ const RED=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const ROLE={lead:['팀장','var(--lead)','#c2417a'],sen:['시니어','var(--sen)','#1f7f97'],jun:['주니어','var(--jun)','#3a9a4c'],risk:['리스크','var(--risk)','#d98200'],me:['사장님','var(--me)','#6a4fd8'],sys:['시스템','var(--sys)','#7b8794']};
 const STAFF=[
  {id:'lead',name:'팀장',role:'lead',seat:[3.2,2.9],hair:'#3b2a22'},
- {id:'sb',name:'시니어 · 빅테크',short:'빅테크',role:'sen',seat:[7.4,4.5],hair:'#1d1d1d',syms:['AAPL','NVDA','TSLA','MSFT','META','AMZN','GOOGL']},
- {id:'se',name:'시니어 · ETF',short:'레버리지·인버스',role:'sen',seat:[10.2,4.5],hair:'#6b4a2b',syms:['SOXL','SOXS','QLD','QID']},
- {id:'sn',name:'시니어 · 신규',short:'신규상장·헬스케어',role:'sen',seat:[13.0,4.5],hair:'#4a3a2a',syms:['SPCX','ANT','LLY','UNH']},
+ {id:'sb',name:'시니어 · 빅테크',short:'빅테크·소프트웨어',role:'sen',seat:[7.4,4.5],hair:'#1d1d1d',syms:['AAPL','NVDA','TSLA','MSFT','META','AMZN','GOOGL','PLTR','ORCL','IBM','CRWD']},
+ {id:'se',name:'시니어 · 반도체·ETF',short:'반도체·레버리지',role:'sen',seat:[10.2,4.5],hair:'#6b4a2b',syms:['SOXL','SOXS','QLD','QID','AMD','MU','AVGO','INTC','MRVL','TSM','SKHY','SNDK','WDC','VRT','COHR']},
+ {id:'sn',name:'시니어 · 신규·기타',short:'신규·헬스·에너지·크립토',role:'sen',seat:[13.0,4.5],hair:'#4a3a2a',syms:['SPCX','ANT','LLY','UNH','ABBV','JNJ','CVX','XOM','MSTR','COIN']},
  {id:'j1',name:'주니어 1',role:'jun',seat:[7.4,8.4],hair:'#2a2a2a',boss:'sb'},
  {id:'j2',name:'주니어 2',role:'jun',seat:[10.2,8.4],hair:'#8a5a32',boss:'se'},
  {id:'j3',name:'주니어 3',role:'jun',seat:[13.0,8.4],hair:'#3a2a1a',boss:'sn'},
@@ -485,7 +485,7 @@ const IND={
 };
 
 /* ================= 전략 (Python strategy.py와 같은 규칙) ================= */
-const SC={longs:['SOXL','QLD','AAPL','NVDA','TSLA','SPCX','ANT','MSFT','META','AMZN','LLY','GOOGL','UNH'],shortMap:{SOXS:'SOXL',QID:'QLD'},lev:{SOXL:3,SOXS:3,QLD:2,QID:2},
+const SC={longs:['SOXL','QLD','AAPL','NVDA','TSLA','SPCX','ANT','MSFT','META','AMZN','LLY','GOOGL','UNH','PLTR','ORCL','IBM','CRWD','AMD','MU','AVGO','INTC','MRVL','TSM','SKHY','SNDK','WDC','VRT','COHR','ABBV','JNJ','CVX','XOM','MSTR','COIN'],shortMap:{SOXS:'SOXL',QID:'QLD'},lev:{SOXL:3,SOXS:3,QLD:2,QID:2},
   os:30,ob:70,watch:14,smas:[20,50,100,200],hma:200,slopeBars:5,votes:3,minOther:2,shortMinOther:3,profile:280,near:1,maxAdds:1,addDrop:1,addTouch:.5,stopBuf:.3,tpExtra:.3,tpTouch:.3,newsBlock:-.3,newsExit:-.6,entry:5,hard:3};
 const NEED=200+5+14+2;
 const f2=x=>x==null?'—':x.toFixed(2);
@@ -560,9 +560,10 @@ function Market(start){
   const G=()=>{let u=0;while(!u)u=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*Math.random())};
   const U=(a,b)=>a+(b-a)*Math.random(),pick=a=>a[Math.floor(Math.random()*a.length)];
   const FV={NDX:.012,SOX:.022};
-  const ST={AAPL:[230,'NDX',.9,.010],NVDA:[180,'SOX',1.1,.016],TSLA:[350,'NDX',1.4,.025],SPCX:[150,'NDX',1.2,.022],ANT:[80,'NDX',1.3,.030],MSFT:[480,'NDX',.9,.009],META:[700,'NDX',1.1,.014],AMZN:[220,'NDX',1,.012],LLY:[900,'NDX',.3,.012],GOOGL:[280,'NDX',1,.012],UNH:[320,'NDX',.3,.013]};
+  const ST={AAPL:[230,'NDX',.9,.010],NVDA:[180,'SOX',1.1,.016],TSLA:[350,'NDX',1.4,.025],SPCX:[150,'NDX',1.2,.022],ANT:[80,'NDX',1.3,.030],MSFT:[480,'NDX',.9,.009],META:[700,'NDX',1.1,.014],AMZN:[220,'NDX',1,.012],LLY:[900,'NDX',.3,.012],GOOGL:[280,'NDX',1,.012],UNH:[320,'NDX',.3,.013],
+    PLTR:[170,'NDX',1.6,.03],ORCL:[220,'NDX',1,.016],IBM:[280,'NDX',.8,.011],CRWD:[500,'NDX',1.3,.022],AMD:[190,'SOX',1.3,.022],MU:[650,'SOX',1.3,.025],AVGO:[300,'SOX',1.2,.016],INTC:[40,'SOX',1.1,.02],MRVL:[100,'SOX',1.3,.025],TSM:[300,'SOX',1.1,.016],SKHY:[190,'SOX',1.3,.03],SNDK:[120,'SOX',1.4,.03],WDC:[110,'SOX',1.3,.025],VRT:[160,'NDX',1.4,.025],COHR:[110,'SOX',1.4,.028],ABBV:[210,'NDX',.3,.012],JNJ:[180,'NDX',.3,.009],CVX:[155,'NDX',.3,.011],XOM:[115,'NDX',.3,.011],MSTR:[300,'NDX',1.8,.04],COIN:[320,'NDX',1.6,.035]};
   const EF={QLD:[120,'NDX',2],QID:[22.5,'NDX',-2],SOXL:[40,'SOX',3],SOXS:[9,'SOX',-3]};
-  const LISTED={ANT:'2026-11-19',SPCX:'2026-06-12'};
+  const LISTED={ANT:'2026-11-19',SPCX:'2026-06-12',SKHY:'2026-07-10'};
   const syms=[...Object.keys(ST),...Object.keys(EF)];
   const f={},s={},e={};for(const k in FV)f[k]={x:0,tr:0,mu:0,left:0};
   for(const k in ST)s[k]={x:Math.log(ST[k][0]),tr:Math.log(ST[k][0]),mu:0,left:0};for(const k in EF)e[k]=Math.log(EF[k][0]);
@@ -615,7 +616,7 @@ const C={target:.5,loss:1,maxPos:10,maxGross:50,maxOrder:5,maxOrders:20,fee:.25,
 function demo(){
   const start=(()=>{let d=todayET();return isTD(d)?d:nextTD(d)})();
   const M=Market(start),N=News();
-  const DESK={sb:['AAPL','NVDA','TSLA','MSFT','META','AMZN','GOOGL'],se:['SOXL','SOXS','QLD','QID'],sn:['SPCX','ANT','LLY','UNH']};
+  const DESK={sb:['AAPL','NVDA','TSLA','MSFT','META','AMZN','GOOGL','PLTR','ORCL','IBM','CRWD'],se:['SOXL','SOXS','QLD','QID','AMD','MU','AVGO','INTC','MRVL','TSM','SKHY','SNDK','WDC','VRT','COHR'],sn:['SPCX','ANT','LLY','UNH','ABBV','JNJ','CVX','XOM','MSTR','COIN']};
   const ALL=Object.values(DESK).flat();
   let cash=10000,fees=0;const pos={};let orders=0,halted=false,hit=false,block='',startEq=10000;const AN={},SCORE={};
   const px=k=>M.price(k);

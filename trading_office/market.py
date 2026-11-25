@@ -64,10 +64,18 @@ class SampleMarket(MarketData):
         "META": (700, "NDX", 1.1, 0.014), "AMZN": (220, "NDX", 1.0, 0.012),
         "LLY": (900, "NDX", 0.3, 0.012), "GOOGL": (280, "NDX", 1.0, 0.012),
         "UNH": (320, "NDX", 0.3, 0.013),
+        # 추가 종목(가격은 가상)
+        "PLTR": (170, "NDX", 1.6, 0.030), "ORCL": (220, "NDX", 1.0, 0.016), "IBM": (280, "NDX", 0.8, 0.011),
+        "CRWD": (500, "NDX", 1.3, 0.022), "AMD": (190, "SOX", 1.3, 0.022), "MU": (650, "SOX", 1.3, 0.025),
+        "AVGO": (300, "SOX", 1.2, 0.016), "INTC": (40, "SOX", 1.1, 0.020), "MRVL": (100, "SOX", 1.3, 0.025),
+        "TSM": (300, "SOX", 1.1, 0.016), "SKHY": (190, "SOX", 1.3, 0.030), "SNDK": (120, "SOX", 1.4, 0.030),
+        "WDC": (110, "SOX", 1.3, 0.025), "VRT": (160, "NDX", 1.4, 0.025), "COHR": (110, "SOX", 1.4, 0.028),
+        "ABBV": (210, "NDX", 0.3, 0.012), "JNJ": (180, "NDX", 0.3, 0.009), "CVX": (155, "NDX", 0.3, 0.011),
+        "XOM": (115, "NDX", 0.3, 0.011), "MSTR": (300, "NDX", 1.8, 0.040), "COIN": (320, "NDX", 1.6, 0.035),
     }
     # 레버리지·인버스 ETF: (기준가, 요인, 배수)
     ETFS = {"QLD": (120, "NDX", 2), "QID": (22.5, "NDX", -2), "SOXL": (40, "SOX", 3), "SOXS": (9, "SOX", -3)}
-    LISTED = {"ANT": date(2026, 11, 19), "SPCX": date(2026, 6, 12)}  # 상장일 이전 봉은 없음
+    LISTED = {"ANT": date(2026, 11, 19), "SPCX": date(2026, 6, 12), "SKHY": date(2026, 7, 10)}  # 상장일 이전 봉은 없음
 
     def __init__(self, seed: int | None = None, start: date | None = None, history_days: int = 45):
         self.rng = random.Random(seed)

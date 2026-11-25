@@ -26,7 +26,10 @@ class RiskLimits:
 class StrategyConfig:
     # 종목: 롱은 아래 목록, 숏은 인버스 ETF 매수로만(SOXS·QID). 값 = 신호를 볼 기초 차트
     long_symbols: list = field(default_factory=lambda: [
-        "SOXL", "QLD", "AAPL", "NVDA", "TSLA", "SPCX", "ANT", "MSFT", "META", "AMZN", "LLY", "GOOGL", "UNH"])
+        "SOXL", "QLD", "AAPL", "NVDA", "TSLA", "SPCX", "ANT", "MSFT", "META", "AMZN", "LLY", "GOOGL", "UNH",
+        # 추가 종목(2026-11-26)
+        "PLTR", "ORCL", "IBM", "CRWD", "AMD", "MU", "AVGO", "INTC", "MRVL", "TSM", "SKHY", "SNDK", "WDC", "VRT", "COHR",
+        "ABBV", "JNJ", "CVX", "XOM", "MSTR", "COIN"])
     short_map: dict = field(default_factory=lambda: {"SOXS": "SOXL", "QID": "QLD"})
     leverage: dict = field(default_factory=lambda: {"SOXL": 3, "SOXS": 3, "QLD": 2, "QID": 2})
     # 지표
@@ -62,9 +65,12 @@ class StrategyConfig:
 @dataclass
 class TeamConfig:
     seniors: dict = field(default_factory=lambda: {
-        "senior_bigtech": {"market": "빅테크", "symbols": ["AAPL", "NVDA", "TSLA", "MSFT", "META", "AMZN", "GOOGL"]},
-        "senior_etf": {"market": "레버리지·인버스 ETF", "symbols": ["SOXL", "SOXS", "QLD", "QID"]},
-        "senior_new": {"market": "신규상장·헬스케어", "symbols": ["SPCX", "ANT", "LLY", "UNH"]},
+        "senior_bigtech": {"market": "빅테크·소프트웨어", "symbols": ["AAPL", "NVDA", "TSLA", "MSFT", "META", "AMZN", "GOOGL",
+                                                               "PLTR", "ORCL", "IBM", "CRWD"]},
+        "senior_etf": {"market": "반도체·레버리지 ETF", "symbols": ["SOXL", "SOXS", "QLD", "QID", "AMD", "MU", "AVGO", "INTC", "MRVL",
+                                                             "TSM", "SKHY", "SNDK", "WDC", "VRT", "COHR"]},
+        "senior_new": {"market": "신규상장·헬스·에너지·크립토관련", "symbols": ["SPCX", "ANT", "LLY", "UNH", "ABBV", "JNJ", "CVX", "XOM",
+                                                                    "MSTR", "COIN"]},
     })
     # 주니어 -> 담당 시니어 (주니어가 스캔·뉴스 확인 후 선보고)
     juniors: dict = field(default_factory=lambda: {
