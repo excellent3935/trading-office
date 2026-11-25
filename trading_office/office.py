@@ -374,7 +374,7 @@ class Office:
         week_last = r.weekly_flatten and cal.is_week_last_session(d)
         no_entry_at = close_at - timedelta(minutes=r.no_entry_before_close_min)
         flat_at = close_at - timedelta(minutes=r.flatten_before_close_min) if week_last else None
-        bar_ends = set(bar_starts(d)[1:]) | {close_at}
+        bar_ends = set(bar_starts(d, getattr(self.market, "bar_min", 60))[1:]) | {close_at}   # 기본 봉 마감 시각(키움 모드 15분)
         self.clock = open_at
 
         start_eq = self.equity()

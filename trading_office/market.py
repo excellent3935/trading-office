@@ -42,13 +42,13 @@ class MarketData:
     def headlines(self) -> list[str]: return []
 
 
-def bar_starts(d: date) -> list[datetime]:
-    """정규장 1시간봉 시작 시각들(마지막 봉은 30분짜리일 수 있음)."""
+def bar_starts(d: date, minutes: int = 60) -> list[datetime]:
+    """정규장 기본 봉(minutes분) 시작 시각들(마지막 봉은 짧을 수 있음). 시세원의 bar_min 과 같아야 한다."""
     o, c = cal.session(d)
     out, t = [], o
     while t < c:
         out.append(t)
-        t += timedelta(hours=1)
+        t += timedelta(minutes=minutes)
     return out
 
 
