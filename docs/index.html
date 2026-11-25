@@ -800,6 +800,7 @@ renderStaff();counts();drawScreen();
   if(/^https?:$/.test(location.protocol)&&/^(127\.0\.0\.1|localhost)$/.test(location.hostname)){
     try{const r=await fetch('/api/hello',{cache:'no-store'});isLive=r.ok&&(await r.json()).office===true}catch{}
   }
+  if(isLive)document.querySelector('.ctrls').style.display='none';   // 실제 시각에 맞춰 진행되므로 속도 조절은 데모에서만
   isLive?live():demo();
 })();
 }
