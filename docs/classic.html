@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI 트레이딩 오피스</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: 증권사 트레이딩 데스크의 하루 장부 — 차분하고 정확하게
+   IDEA: 트레이딩 플로어 좌석 배치도와 사내 메신저 기록
+   PICTURE: 팀장-시니어-주니어 좌석도. 말하는 사람과 보고선이 켜진다
+   COLOUR and TYPE: 심해 #0a2540 바탕, 하늘 #8fd3ff 수익, 시그널 핑크 #ff5c8a 손실·팀장, Hanken Grotesk + Noto Sans KR
+   LAYOUT: 제목과 컨트롤, 좌석도|메신저, 손익 곡선 띠, 리스크·포지션·체결 */
+:root{color-scheme:dark;--bg:#0a2540;--bg2:#0e2e50;--bg3:#123760;--ink:#fff;--mute:#a7bfd8;--line:rgba(143,211,255,.2);--sky:#8fd3ff;--pink:#ff5c8a}
+:root[data-theme=light],:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Hanken Grotesk","Noto Sans KR",system-ui,sans-serif;overflow-x:clip}
+.band{padding:clamp(24px,4vw,56px) max(5vw,16px)}
+.wrap{max-width:1240px;margin:0 auto}
+h1{font-weight:300;font-size:clamp(32px,5vw,52px);line-height:1.05;margin:0 0 12px;text-wrap:balance}
+h2{font-weight:500;font-size:20px;margin:0 0 14px}
+.lede{color:var(--mute);max-width:68ch;margin:0 0 22px}
+.ctl{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
+.ctl label{display:grid;gap:4px;font-size:13px;color:var(--mute)}
+input,select{font:inherit;font-size:16px;color:var(--ink);background:var(--bg2);border:1px solid var(--line);border-radius:8px;height:44px;padding:0 12px;width:9.5em}
+button{font:inherit;font-size:16px;height:44px;padding:0 18px;border-radius:8px;border:1px solid var(--line);background:var(--bg2);color:var(--ink);cursor:pointer}
+button.go{background:var(--sky);color:#0a2540;border-color:var(--sky);font-weight:600}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--pink);outline-offset:2px}
+.note{font-size:13px;color:var(--mute);margin-top:12px}
+.floor{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:20px;margin-top:8px}
+.panel{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:16px}
+.fig{position:relative;min-height:360px}.fig>svg{position:absolute;inset:0;width:100%;height:100%}
+#org .node rect{fill:var(--bg3);stroke:var(--line);stroke-width:1.5;transition:fill .25s,stroke .25s}
+#org .node text{fill:var(--ink);font-size:15px;text-anchor:middle}
+#org .node text.sub{fill:var(--mute);font-size:12px}
+#org .node.on rect{fill:#1b4a7a;stroke:var(--sky);stroke-width:2.5}
+#org .node.lead rect{stroke:var(--pink)}
+#org .node.lead.on rect{fill:#4a1f3c;stroke:var(--pink)}
+#org .edge{stroke:var(--line);stroke-width:2;fill:none;transition:stroke .25s}
+#org .edge.dash{stroke-dasharray:5 5}
+#org .edge.on{stroke:var(--sky);stroke-width:3}
+.feed{height:420px;overflow-y:auto;margin:0;padding:0;list-style:none;scroll-behavior:smooth}
+.feed li{padding:10px 4px;border-bottom:1px solid var(--line)}
+.feed li p{margin:2px 0 0;color:var(--mute);font-size:15px}
+.feed .who{font-weight:600}.feed .r-lead{color:var(--pink)}.feed .r-sen{color:var(--sky)}.feed .r-risk{color:#ffd1dd}
+.tag{float:right;font-size:12px;padding:2px 8px;border-radius:99px;border:1px solid var(--line);color:var(--mute)}
+.t-체결 .tag{border-color:var(--sky);color:var(--sky)}.t-거부 .tag,.t-반려 .tag,.t-리스크 .tag,.t-청산 .tag{border-color:var(--pink);color:var(--pink)}
+.feed li.div{color:var(--mute);font-size:13px;text-align:center;border:0;padding:14px 0 4px}
+.feed .empty{color:var(--mute);padding:40px 8px;text-align:center;border:0}
+.curve{background:var(--bg2);border-block:1px solid var(--line)}
+.kpis{display:flex;flex-wrap:wrap;gap:28px;margin-bottom:10px}
+.kpi b{display:block;font-weight:300;font-size:clamp(28px,4vw,40px);line-height:1.1;white-space:nowrap}
+.kpi span{font-size:13px;color:var(--mute)}
+.up{color:var(--sky)}.dn{color:var(--pink)}
+#chart{min-height:300px}
+.grid3{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1fr) minmax(0,1.2fr);gap:20px}
+.meter{margin-bottom:16px}.meter div{display:flex;justify-content:space-between;font-size:14px}
+.bar{height:10px;border-radius:99px;background:var(--bg3);overflow:hidden;margin-top:6px}.bar i{display:block;height:100%;width:0;background:var(--sky);transition:width .3s}
+.bar.pk i{background:var(--pink)}
+.state{font-size:14px;padding:8px 12px;border-radius:8px;background:var(--bg3);color:var(--mute)}
+.state.hit{color:#0a2540;background:var(--sky)}.state.halt{color:#fff;background:var(--pink)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{font-weight:500;color:var(--mute);text-align:left;padding:6px 6px;border-bottom:1px solid var(--line)}
+td{padding:7px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.tbox{max-height:300px;overflow:auto}
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:0;padding:0;list-style:none}
+.rules li{border-top:2px solid var(--sky);padding-top:10px;color:var(--mute);font-size:15px}
+.rules b{display:block;color:var(--ink);font-weight:500;margin-bottom:2px}
+pre{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:14px;overflow-x:auto;font-size:14px}
+footer{color:var(--mute);font-size:14px}
+a{color:var(--sky)}
+@media(max-width:900px){.floor,.grid3{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:600px){input,select{width:calc(50vw - 28px)}table{font-size:13px}.stack thead{display:none}.stack tr{display:grid;padding-block:8px;border-bottom:1px solid var(--line)}.stack td{display:flow-root;border:0;padding:2px 0;padding-inline-start:6em;text-align:start;white-space:normal}.stack td::before{content:attr(data-l);float:inline-start;width:5.5em;margin-inline-start:-6em;color:var(--mute)}.stack td:empty{display:none}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+<script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script>
+</head>
+<body>
+<section class="band"><div class="wrap">
+  <h1>AI 트레이딩 오피스의 하루</h1>
+  <p class="lede">시니어가 시황을 보고하면 팀장이 전략을 지시하고, 주니어는 시니어에게 선보고한 뒤에만 매매합니다. 모든 주문은 리스크 매니저를 거쳐야 체결됩니다. 나스닥 종목만 다루며, 하루 목표는 시드의 0.5%입니다.</p>
+  <form class="ctl" id="ctl">
+    <label>시드(USD)<input id="seed" type="number" min="1000" step="1000" value="10000"></label>
+    <label>매매 라운드<select id="rounds"><option>3</option><option selected>6</option><option>10</option></select></label>
+    <label>시세 번호<input id="mseed" type="number" value="7"></label>
+    <label>재생 속도<select id="speed"><option value="650">천천히</option><option value="260" selected>보통</option><option value="70">빠르게</option></select></label>
+    <button class="go" id="run" type="submit">하루 시작</button>
+    <button id="dice" type="button">다른 시세</button>
+    <button id="skip" type="button">끝까지</button>
+  </form>
+  <p class="note">가상 시세(랜덤워크)와 규칙 기반 모의 에이전트로 돌아가는 시뮬레이션입니다. 실제 시장 데이터나 실제 매매가 아닙니다.</p>
+</div></section>
+
+<section class="band" style="padding-top:0"><div class="wrap floor">
+  <div class="panel"><h2>트레이딩 플로어</h2><div class="fig"><svg id="org" viewBox="0 0 640 380" preserveAspectRatio="xMidYMid meet" role="img" aria-label="팀 조직도"></svg></div></div>
+  <div class="panel"><h2>사내 메신저</h2><ul class="feed" id="feed"><li class="empty">‘하루 시작’을 누르면 보고와 지시가 여기에 쌓입니다.</li></ul></div>
+</div></section>
+
+<section class="band curve"><div class="wrap">
+  <div class="kpis">
+    <div class="kpi"><b id="kEq">$10,000</b><span>평가금액</span></div>
+    <div class="kpi"><b id="kPnl">0.00%</b><span>오늘 손익</span></div>
+    <div class="kpi"><b id="kOrd">0 / 20</b><span>주문 건수</span></div>
+  </div>
+  <div class="fig" id="chart"><svg id="cs" aria-label="일중 손익 곡선"></svg></div>
+</div></section>
+
+<section class="band"><div class="wrap grid3">
+  <div class="panel"><h2>리스크 상태</h2>
+    <div class="meter"><div><span>목표 진행 (+0.5%)</span><span id="mT">0%</span></div><div class="bar"><i id="bT"></i></div></div>
+    <div class="meter"><div><span>손실 한도 사용 (−1%)</span><span id="mL">0%</span></div><div class="bar pk"><i id="bL"></i></div></div>
+    <div class="meter"><div><span>총 노출 (한도 50%)</span><span id="mX">0%</span></div><div class="bar"><i id="bX"></i></div></div>
+    <p class="state" id="st">정상 운영 중</p>
+  </div>
+  <div class="panel"><h2>보유 포지션</h2><div class="tbox"><table class="stack"><thead><tr><th>종목</th><th class="n">평가액</th><th class="n">평균가</th><th class="n">손익</th></tr></thead><tbody id="pos"></tbody></table></div></div>
+  <div class="panel"><h2>체결 내역</h2><div class="tbox"><table class="stack"><thead><tr><th>라운드</th><th>담당</th><th>종목</th><th class="n">금액</th><th class="n">가격</th></tr></thead><tbody id="fills"></tbody></table></div></div>
+</div></section>
+
+<section class="band" style="padding-top:0"><div class="wrap">
+  <h2>코드로 강제하는 규칙</h2>
+  <ul class="rules">
+    <li><b>AI는 의견만 낸다</b>에이전트는 JSON만 반환하고, 주문은 리스크 검사를 통과한 코드만 냅니다.</li>
+    <li><b>0.5%는 상한</b>목표에 닿으면 신규 매수를 막고 청산만 허용합니다.</li>
+    <li><b>−1%면 멈춘다</b>일일 손실 한도에 닿으면 전량 청산하고 그날 매매를 중단합니다.</li>
+    <li><b>비중 한도</b>종목당 10%, 주문당 5%, 총 노출 50%, 포지션별 손절 1.5%, 하루 20건.</li>
+    <li><b>수수료 0.25%</b>매수·매도 각각 거래대금의 0.25%를 차감합니다. 한 번 사고팔면 0.5%로, 하루 목표와 같은 크기입니다.</li>
+    <li><b>금요일엔 비운다</b>포지션은 다음 날로 넘길 수 있지만, 주 마지막 거래일엔 나스닥 마감 30분 전부터 매수를 막고 15분 전에 전량 청산합니다.</li>
+    <li><b>선보고 의무</b>주니어 아이디어는 담당 시니어의 워치리스트와 맞아야 승인됩니다.</li>
+    <li><b>실계좌는 사람 승인</b>Python 버전의 <code>--live</code> 모드는 주문마다 터미널에서 yes를 입력해야 전송됩니다.</li>
+  </ul>
+</div></section>
+
+<footer class="band" style="padding-top:0"><div class="wrap">
+  <h2 style="color:var(--ink)">직접 실행하기</h2>
+<pre>python main.py                 # 모의 에이전트 + 샘플 시세
+python main.py --llm claude    # 내 PC의 Claude Code로 판단 (도구 0개로 격리)
+python -m unittest discover tests</pre>
+  <p>이 페이지는 Python 버전(<code>trading_office/</code>)의 MockLLM·리스크 로직을 브라우저로 옮긴 데모입니다. 투자 조언이 아닙니다.</p>
+</div></footer>
+
+<script>
+{
+const C={target:.5,loss:1,maxPos:10,maxGross:50,maxOrder:5,stop:1.5,maxOrders:20,fee:.25};
+const SEN={sn:{name:'시니어 · 빅테크',syms:['NVDA','AAPL','MSFT','AMZN','META']},sc:{name:'시니어 · 성장주',syms:['QQQ','TSLA','AVGO','AMD','GOOGL']}};
+const JUN={j1:'sn',j2:'sn',j3:'sc'};
+const NM={lead:'팀장',sn:'시니어 · 빅테크',sc:'시니어 · 성장주',j1:'주니어 1',j2:'주니어 2',j3:'주니어 3',risk:'리스크 매니저'};
+const BASE={NVDA:180,AAPL:230,MSFT:480,AMZN:220,META:700,QQQ:520,TSLA:350,AVGO:340,AMD:220,GOOGL:280};
+const HV=new Set(['TSLA','AMD','NVDA']);
+const $=id=>document.getElementById(id);
+const usd=v=>(v<0?'−$':'$')+Math.abs(v).toLocaleString('en-US',{maximumFractionDigits:v>=1000||v<=-1000?0:2,minimumFractionDigits:v>=1000||v<=-1000?0:2});
+const pct=(v,d=2)=>(v>0?'+':v<0?'−':'')+Math.abs(v).toFixed(d)+'%';
+const pxf=v=>v>=1000?v.toLocaleString('en-US',{maximumFractionDigits:0}):v.toFixed(2);
+const role=k=>k==='lead'?'lead':k==='risk'?'risk':k&&k[0]==='s'?'sen':'jun';
+
+function rngOf(s){return()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+function simulate(seed,rounds,mseed){
+  const r=rngOf(mseed),U=(a,b)=>a+(b-a)*r();
+  const G=()=>{let u=0;while(!u)u=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*r())};
+  const px={};for(const s in BASE)px[s]=BASE[s]*(1+U(-.02,.02));
+  const step=()=>{for(const s in px)px[s]*=1+G()*(s==='QQQ'?.004:HV.has(s)?.009:.006)};
+  const chg=s=>(px[s]/BASE[s]-1)*100;
+  let cash=seed,fees=0,orders=0,hit=false,halted=false,round=0;
+  const pos={},fills=[],curve=[],ev=[];
+  const expo=()=>Object.entries(pos).reduce((a,[s,p])=>a+p.q*px[s],0);
+  const eq=()=>cash+expo();
+  const pnl=()=>(eq()/seed-1)*100;
+  const snap=()=>Object.entries(pos).filter(([,p])=>p.q>0).map(([s,p])=>({s,v:p.q*px[s],avg:p.a,r:(px[s]/p.a-1)*100}));
+  const push=(type,from,to,text)=>ev.push({type,from,to,text,n:curve.length,eq:eq(),pnl:pnl(),orders,hit,halted,expo:expo()/eq()*100,pos:snap(),f:fills.length});
+  const submit=(s,side,q,by)=>{
+    const p=pos[s]||(pos[s]={q:0,a:0});
+    const fpx=px[s];
+    if(side==='buy'){const fee=q*fpx*C.fee/100,cost=q*fpx+fee;if(cost>cash)return null;fees+=fee;p.a=(p.a*p.q+cost)/(p.q+q);p.q+=q;cash-=cost}
+    else{q=Math.min(q,p.q);if(q<=0)return null;const fee=q*fpx*C.fee/100;fees+=fee;p.q-=q;cash+=q*fpx-fee;if(p.q<1e-9){p.q=0;p.a=0}}
+    const f={round,by,s,side,q,px:fpx};fills.push(f);return f};
+  const check=(s,side,notional)=>{
+    if(halted)return{ok:false,why:'매매 중단 상태'};
+    if(orders>=C.maxOrders)return{ok:false,why:'일일 주문 횟수 초과'};
+    const pv=(pos[s]?.q||0)*px[s],e=eq();
+    if(side==='sell'){const q=Math.min(notional,pv)/px[s];return q>0?{ok:true,q}:{ok:false,why:'보유 수량 없음'}}
+    if(hit)return{ok:false,why:'목표 달성 후 신규 매수 금지'};
+    const cap=Math.min(notional,e*C.maxOrder/100,e*C.maxPos/100-pv,e*C.maxGross/100-expo());
+    if(cap<=0)return{ok:false,why:'비중·노출 한도 초과'};
+    return{ok:true,q:cap/px[s],cut:cap<notional}};
+  const execute=(by,s,side,notional)=>{
+    const v=check(s,side,notional);
+    if(!v.ok)return push('거부',by,'risk',`${s} ${side==='buy'?'매수':'매도'} 거부 — ${v.why}`);
+    const f=submit(s,side,v.q,by);
+    if(f){orders++;push('체결',by,'risk',`${side==='buy'?'매수':'매도'} ${s} ${usd(f.q*f.px)} @ ${pxf(f.px)}${v.cut?' (한도에 맞게 축소)':''}`)}};
+  const flatten=(by,only)=>{for(const[s,p]of Object.entries(pos))if(p.q>0&&(!only||only.includes(s))){const f=submit(s,'sell',p.q,by);if(f)push('청산','risk',null,`${s} 전량 매도 ${usd(f.q*f.px)}${by==='stop'?' — 손절 1.5% 도달':''}`)}};
+  const riskState=()=>{
+    for(const[s,p]of Object.entries(pos))if(p.q>0&&px[s]<=p.a*(1-C.stop/100))flatten('stop',[s]);
+    const x=pnl();
+    if(x<=-C.loss&&!halted){halted=true;push('리스크','risk','lead',`일일 손실 한도 도달(${pct(x)}) → 전량 청산, 오늘 매매 중단`);flatten('halt')}
+    else if(x>=C.target&&!hit){hit=true;push('리스크','risk','lead',`일일 목표 달성(${pct(x)}) → 신규 진입 중단, 청산·축소만 허용`)}};
+
+  curve.push(0);
+  push('장시작','lead',null,`시드 ${usd(seed)} · 목표 +${usd(seed*C.target/100)} · 손실 한도 −${usd(seed*C.loss/100).slice(1)}`);
+  const rep={},alloc={};
+  for(const[k,t]of Object.entries(SEN)){
+    const up=t.syms.filter(s=>chg(s)>0),bull=up.length*2>=t.syms.length;
+    rep[k]={wl:up.slice(0,2),bull};alloc[k]=bull?30:10;
+    push('시황보고',k,'lead',`상승 ${up.length}/${t.syms.length}종목 · ${bull?'강세':'약세'} 판단 · 관심 종목 ${up.slice(0,2).join(', ')||'없음'}`)}
+  for(const k in SEN)push('전략지시','lead',k,`자금 배분 ${alloc[k]}% · 워치리스트 중심 분할 진입, 손절 엄수, 목표 도달 시 즉시 정리`);
+
+  for(round=1;round<=rounds&&!halted;round++){
+    step();curve.push(pnl());
+    push('라운드',null,null,`${round}라운드`);
+    for(const[j,sk]of Object.entries(JUN)){
+      if(halted)break;
+      const best=SEN[sk].syms.reduce((a,s)=>chg(s)>chg(a)?s:a);
+      push('선보고',j,sk,`${best} 매수 $300 제안 — 당일 ${pct(chg(best))} 강세, 모멘텀 추종`);
+      const ok=rep[sk].wl.includes(best);
+      push(ok?'승인':'반려',sk,j,ok?'워치리스트와 일치, 승인':'워치리스트 밖 종목이라 반려');
+      if(ok)execute(j,best,'buy',300)}
+    for(const[k,t]of Object.entries(SEN)){
+      const wl=rep[k].wl;if(!wl.length||halted)continue;
+      const each=seed*alloc[k]/100/rounds/wl.length/3;
+      for(const s of wl)execute(k,s,'buy',each)}
+    riskState();
+    for(let t=0;t<4&&!halted;t++){step();curve.push(pnl());riskState()}
+  }
+  push('장마감','lead',null,`최종 손익 ${usd(eq()-seed)} (${pct(pnl(),3)}, 수수료 ${usd(fees)} 차감 후) · 주문 ${orders}건${hit?' · 목표 달성':''}${halted?' · 손실 한도로 중단':''}`);
+  return{ev,curve,fills,seed};
+}
+
+/* 조직도 */
+const N={lead:[320,52],sn:[190,178],sc:[450,178],j1:[90,310],j2:[240,310],j3:[420,310],risk:[570,310]};
+const E=[['lead','sn'],['lead','sc'],['sn','j1'],['sn','j2'],['sc','j3'],['sn','risk',1],['sc','risk',1],['j3','risk',1]];
+const SUB={lead:'전략 지시',sn:'NVDA AAPL MSFT…',sc:'QQQ TSLA AVGO…',j1:'빅테크 담당',j2:'빅테크 담당',j3:'성장주 담당',risk:'한도 검사 · 체결'};
+const org=$('org');
+org.innerHTML=E.map(([a,b,d])=>{const[x1,y1]=N[a],[x2,y2]=N[b];const my=(y1+y2)/2;return`<path class="edge${d?' dash':''}" id="e-${a}-${b}" d="M${x1} ${y1+27} C${x1} ${my+20} ${x2} ${my-20} ${x2} ${y2-27}"/>`}).join('')+
+  Object.entries(N).map(([k,[x,y]])=>`<g class="node ${k==='lead'?'lead':''}" id="n-${k}"><rect x="${x-66}" y="${y-27}" width="132" height="54" rx="10"/><text x="${x}" y="${y-3}">${NM[k].replace('시니어 · ','시니어 ')}</text><text class="sub" x="${x}" y="${y+15}">${SUB[k]}</text></g>`).join('');
+const light=(a,b)=>{
+  org.querySelectorAll('.on').forEach(e=>e.classList.remove('on'));
+  for(const k of[a,b])if(k)$('n-'+k)?.classList.add('on');
+  if(a&&b)($('e-'+a+'-'+b)||$('e-'+b+'-'+a))?.classList.add('on')};
+
+/* 차트 */
+let SIM=null,cur=0;
+const cs=$('cs');
+const draw=()=>{
+  const W=cs.clientWidth,H=cs.clientHeight;if(!W||!H)return;
+  const pts=SIM?SIM.curve.slice(0,SIM.ev[cur]?.n??1):[0];
+  const total=SIM?Math.max(SIM.curve.length-1,1):30;
+  const lo=Math.min(-1.2,...pts)-.1,hi=Math.max(.7,...pts)+.1;
+  const L=8,R=W<520?8:112,T=12,B=26;
+  const X=i=>L+(W-L-R)*i/total,Y=v=>T+(H-T-B)*(hi-v)/(hi-lo);
+  const line=(v,cls,label)=>`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="${cls}" stroke-width="1.5" stroke-dasharray="${v?'6 5':''}" opacity="${v?1:.4}"/>`+(W>=520?`<text x="${W-R+8}" y="${Y(v)+5}" fill="${cls}" font-size="13">${label}</text>`:'');
+  const last=pts[pts.length-1]||0;
+  cs.innerHTML=line(.5,'#8fd3ff','목표 +0.5%')+line(-1,'#ff5c8a','한도 −1%')+line(0,'#a7bfd8','0%')+
+    (pts.length>1?`<polyline fill="none" stroke="#fff" stroke-width="2.5" stroke-linejoin="round" points="${pts.map((v,i)=>X(i).toFixed(1)+','+Y(v).toFixed(1)).join(' ')}"/><circle cx="${X(pts.length-1)}" cy="${Y(last)}" r="5" fill="${last>=0?'#8fd3ff':'#ff5c8a'}"/>`:'')+
+    `<text x="${L}" y="${H-6}" fill="#a7bfd8" font-size="13">장 시작</text><text x="${W-R}" y="${H-6}" fill="#a7bfd8" font-size="13" text-anchor="end">장 마감</text>`};
+const ro=new ResizeObserver(draw);ro.observe(cs);
+
+/* 화면 갱신 */
+const feed=$('feed');
+const show=i=>{
+  const e=SIM.ev[i];cur=i;
+  if(e.type==='라운드')feed.insertAdjacentHTML('beforeend',`<li class="div">— ${e.text} —</li>`);
+  else feed.insertAdjacentHTML('beforeend',`<li class="t-${e.type}"><span class="tag">${e.type}</span><b class="who r-${role(e.from)}">${NM[e.from]}</b>${e.to?` → ${NM[e.to]}`:''}<p>${e.text}</p></li>`);
+  feed.scrollTop=feed.scrollHeight;
+  light(e.from,e.to);
+  $('kEq').textContent=usd(e.eq);
+  const k=$('kPnl');k.textContent=pct(e.pnl);k.className=e.pnl>=0?'up':'dn';
+  $('kOrd').textContent=`${e.orders} / ${C.maxOrders}`;
+  const set=(b,m,v)=>{const w=Math.max(0,Math.min(100,v));$(b).style.width=w+'%';$(m).textContent=Math.round(w)+'%'};
+  set('bT','mT',e.pnl/C.target*100);set('bL','mL',-e.pnl/C.loss*100);set('bX','mX',e.expo/C.maxGross*100);
+  const st=$('st');st.className='state'+(e.halted?' halt':e.hit?' hit':'');
+  st.textContent=e.halted?'손실 한도 도달 — 매매 중단':e.hit?'목표 달성 — 신규 매수 금지, 청산만 허용':'정상 운영 중';
+  $('pos').innerHTML=e.pos.length?e.pos.map(p=>`<tr><td>${p.s}</td><td class="n">${usd(p.v)}</td><td class="n">${pxf(p.avg)}</td><td class="n ${p.r>=0?'up':'dn'}">${pct(p.r)}</td></tr>`).join(''):'<tr><td colspan="4" style="color:var(--mute)">보유 없음</td></tr>';
+  $('fills').innerHTML=SIM.fills.slice(0,e.f).reverse().map(f=>`<tr><td>${f.round||'—'}</td><td>${NM[f.by]||(f.by==='stop'?'손절':'리스크')}</td><td>${f.side==='buy'?'매수':'매도'} ${f.s}</td><td class="n">${usd(f.q*f.px)}</td><td class="n">${pxf(f.px)}</td></tr>`).join('')||'<tr><td colspan="5" style="color:var(--mute)">체결 없음</td></tr>';
+  draw()};
+
+let timer=null;
+const stop=()=>{clearTimeout(timer);timer=null};
+const play=()=>{if(!SIM||cur>=SIM.ev.length-1){stop();return}show(cur+1);timer=setTimeout(play,+$('speed').value)};
+const start=()=>{
+  stop();
+  const seed=Math.max(1000,+$('seed').value||10000);
+  SIM=simulate(seed,+$('rounds').value,+$('mseed').value||1);
+  feed.innerHTML='';cur=-1;play()};
+$('ctl').addEventListener('submit',ev=>{ev.preventDefault();start()});
+$('dice').addEventListener('click',()=>{$('mseed').value=Math.floor(Math.random()*9999)+1;start()});
+$('skip').addEventListener('click',()=>{if(!SIM)start();stop();while(cur<SIM.ev.length-1)show(cur+1)});
+draw();
+}
+</script>
+</body>
+</html>

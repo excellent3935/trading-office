@@ -15,6 +15,17 @@ python -m unittest discover tests   # 리스크 한도 테스트
 ```
 외부 패키지 없이 Python 3.10 이상에서 동작합니다.
 
+## 사무실 화면 (실시간)
+아이소메트릭 사무실에서 직원(에이전트)들이 걸어가 보고하고, 주문서가 리스크 데스크를 거쳐 서버로 가는 모습을 보여줍니다.
+- **웹 데모**: https://excellent3935.github.io/trading-office/ — 브라우저 안에서 도는 모의 오피스(가상 시세)
+- **내 PC 실시간**: `python serve_office.py` 실행 후 http://127.0.0.1:8765 접속 — Python 오피스의 실제 진행을 그대로 표시
+  ```bash
+  python serve_office.py --days 5 --date 2026-11-23        # 5거래일 시뮬레이션을 화면으로
+  python serve_office.py --llm claude --market yahoo --realtime   # 실제 시각·실시세로
+  ```
+  - 127.0.0.1에서만 열리고 Host 헤더를 검사합니다. 화면은 읽기 전용이며 주문 승인은 터미널에서만 받습니다.
+- 이전 하루 요약 화면은 `docs/classic.html`
+
 ## 보유기간 규칙
 - 포지션은 필요하면 **다음 거래일로 이월**할 수 있습니다. 상태는 `office_data/state.json`에 저장돼 다음 실행 때 이어집니다.
 - **주 마지막 거래일(보통 금요일)**: 마감 30분 전부터 신규 매수 금지, **마감 15분 전 전량 청산** (미국 동부시간, 서머타임 자동 반영)

@@ -72,8 +72,14 @@ class MockLLM(LLM):
         if "trade_plan" in system:
             wl = data.get("watchlist", [])
             budget = data.get("budget_usd", 0)
-            orders = [{"symbol": s, "side": "buy", "notional": round(budget / max(len(wl), 1) / 3, 2),
-                       "reason": "지시 기반 분할 진입"} for s in wl]
+            px = {q["symbol"]: q["price"] for q in data.get("quotes", [])}
+            # 보유 종목 중 +1% 이상 수익이면 익절(전량 매도), 아니면 계속 보유
+            orders = [{"symbol": s, "side": "sell", "notional": round(p["qty"] * px[s], 2),
+                       "reason": f"익절 {(px[s] / p['avg'] - 1) * 100:+.2f}%"}
+                      for s, p in data.get("positions", {}).items()
+                      if s in px and p.get("avg") and px[s] >= p["avg"] * 1.01]
+            orders += [{"symbol": s, "side": "buy", "notional": round(budget / max(len(wl), 1) / 3, 2),
+                        "reason": "지시 기반 분할 진입"} for s in wl]
             return json.dumps({"orders": orders}, ensure_ascii=False)
         return "{}"
 

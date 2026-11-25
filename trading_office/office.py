@@ -55,6 +55,7 @@ class Office:
         self.risk = RiskManager(cfg.risk, cfg.seed, symbols)
         self.log_path = self.dir / f"ledger_{time.strftime('%Y%m%d_%H%M%S')}.jsonl"
         self.clock: datetime | None = None   # 현재 라운드 시각(ET)
+        self.listeners: list = []            # 이벤트 구독자(예: serve_office.py의 사무실 화면)
 
     # ---------- 상태 저장/복원 ----------
     def _load_state(self):
@@ -81,6 +82,28 @@ class Office:
         with self.log_path.open("a", encoding="utf-8") as f:
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
         print(f"[{t}] {event}: {json.dumps(data, ensure_ascii=False)[:220]}")
+        self._notify(rec)
+
+    def emit(self, event: str, **data):
+        """장부에는 남기지 않고 구독자에게만 보내는 이벤트(시세 등)."""
+        t = self.clock.strftime("%m-%d %H:%M ET") if self.clock else time.strftime("%H:%M:%S")
+        self._notify({"t": t, "event": event, **data})
+
+    def _notify(self, rec: dict):
+        for fn in self.listeners:
+            try:
+                fn(rec)
+            except Exception as e:  # 화면 오류가 매매를 멈추지 않게
+                print(f"  [listener 오류] {e}")
+
+    def snapshot(self) -> dict:
+        px = self.prices()
+        return {"prices": {s: round(p, 2) for s, p in px.items()},
+                "change": {s: self.market.quote(s).change_pct for s in px},
+                "cash": round(self.paper.cash, 2), "equity": round(self.paper.equity(px), 2),
+                "fees": round(self.paper.fees_paid, 2), "positions": self.positions_view(),
+                "orders": self.risk.orders_today, "halted": self.risk.halted,
+                "target_hit": self.risk.target_hit, "entry_blocked": self.risk.entry_blocked}
 
     def prices(self) -> dict:
         return {s: self.market.quote(s).price for s in self.risk.allowed}
@@ -171,6 +194,7 @@ class Office:
 
         start_eq = self.equity()
         fees_start = self.paper.fees_paid
+        self.emit("시세", **self.snapshot())
         self.log("장시작", date=d.isoformat(), weekday=WEEKDAY_KO[d.weekday()],
                  close_et=close_at.strftime("%H:%M"), week_last_session=week_last,
                  equity=round(start_eq, 2), carried=self.positions_view(), mode=self.cfg.mode,
@@ -213,6 +237,7 @@ class Office:
             self.market.step()
             if week_last and self.clock >= no_entry_at and not self.risk.entry_blocked:
                 self.risk.entry_blocked = "주 마지막 거래일 마감 전 — 신규 매수 금지"
+            self.emit("시세", **self.snapshot())
             self.log("라운드", n=rnd, equity=round(self.equity(), 2))
 
             # 3a) 주니어 선보고 → 시니어 승인
@@ -275,6 +300,7 @@ class Office:
         pnl = end_eq - start_eq
         self.last_session = d.isoformat()
         self._save_state()
+        self.emit("시세", **self.snapshot())
         self.log("장마감", date=d.isoformat(), equity=round(end_eq, 2), pnl_usd=round(pnl, 2),
                  pnl_pct=round(pnl / start_eq * 100, 3),
                  fees_usd=round(self.paper.fees_paid - fees_start, 2), target_hit=self.risk.target_hit,
