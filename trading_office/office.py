@@ -34,6 +34,7 @@ class Office:
     def __init__(self, cfg: OfficeConfig, market: MarketData, reset_state: bool = False,
                  news: NewsFeed | None = None):
         self.cfg, self.market = cfg, market
+        self._start_eq = None
         self.news = news or SampleNews()
         llm = ClaudeCLI(cfg.claude_model) if cfg.llm == "claude" else MockLLM()
         r = cfg.risk
@@ -338,10 +339,23 @@ class Office:
     def _wait_until(self, t: datetime):
         if self.cfg.realtime:
             while (left := (t - datetime.now(cal.ET)).total_seconds()) > 0:
-                time.sleep(min(left, 30))
+                if getattr(self.market, "live", False):      # 현재가를 실시간으로 받는 시세원이면 대기 중에도 화면·손절을 자주 점검
+                    time.sleep(min(left, 3))
+                    self._live_tick()
+                else:
+                    time.sleep(min(left, 30))
             self.clock = max(t, datetime.now(cal.ET))
         else:
             self.clock = t
+
+    def _live_tick(self):
+        """대기 중 약 3초마다: 화면에 현재가·평가금액을 보내고, 보유 종목 손절선만 점검한다(판단·신규 매수는 하지 않음)."""
+        try:
+            if self._start_eq is not None and not self.risk.halted and self.paper.positions:
+                self.check_risk_state(self._start_eq)
+            self.emit("실시간시세", **self.snapshot())
+        except Exception as e:
+            print(f"  [실시간 점검 오류] {e}")
 
     # ---------- 거래일 ----------
     def run_day(self, d: date | None = None):
@@ -361,6 +375,7 @@ class Office:
         self.clock = open_at
 
         start_eq = self.equity()
+        self._start_eq = start_eq
         fees_start = self.paper.fees_paid
         self.emit("시세", **self.snapshot())
         self.log("장시작", date=d.isoformat(), weekday=WEEKDAY_KO[d.weekday()],
@@ -421,6 +436,7 @@ class Office:
                 self.decide(week_last)
 
         # 마감
+        self._start_eq = None
         self.clock = close_at
         end_eq = self.equity()
         pnl = end_eq - start_eq
