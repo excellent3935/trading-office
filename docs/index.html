@@ -321,7 +321,8 @@ for(const s of STAFF){
 /* ================= 시간·애니메이션 ================= */
 let SPEED=1,PAUSED=false,last=performance.now();
 const WAITS=[];
-const wait=ms=>new Promise(r=>WAITS.push({t:ms,r}));
+let FF=false;   // 빨리감기: 실시간 모드에서 탭이 가려졌거나 처리할 이벤트가 밀렸을 때 애니메이션을 건너뜀
+const wait=ms=>FF?Promise.resolve():new Promise(r=>WAITS.push({t:ms,r}));
 function route(from,to){
   const pts=[];const rf=inRoom(from),rt=inRoom(to);
   if(rf)pts.push(rf.door);
@@ -334,7 +335,7 @@ function route(from,to){
   }
   pts.push(to);return pts;
 }
-function walk(id,to){const c=CH[id];return new Promise(r=>{c.path=route([c.x,c.y],to);c.done=r;setStatus(id,'이동 중')})}
+function walk(id,to){const c=CH[id];if(FF){c.path=[];c.x=to[0];c.y=to[1];return Promise.resolve()}return new Promise(r=>{c.path=route([c.x,c.y],to);c.done=r;setStatus(id,'이동 중')})}
 const home=id=>walk(id,CH[id].s.seat);
 function frame(now){
   let dt=Math.min(.1,(now-last)/1000);last=now;
@@ -385,10 +386,15 @@ function say(id,text,kind='say',ms=2600){
 /* 주문서 */
 const PK=[];
 function packet(from,to,col='#1f2a37'){
+  if(FF)return Promise.resolve();
   return new Promise(r=>{const el=document.createElementNS(NS,'g');el.innerHTML=`<rect x="-7" y="-9" width="14" height="18" rx="2" fill="#fff" stroke="${col}" stroke-width="1.5"/><line x1="-3" y1="-3" x2="3" y2="-3" stroke="${col}"/><line x1="-3" y1="1" x2="3" y2="1" stroke="${col}"/>`;
     L.fx.appendChild(el);PK.push({el,a:from,b:to,t:0,dur:.7,r})});
 }
 const posOf=id=>[CH[id].x,CH[id].y];
+/* 진행 중이던 애니메이션을 즉시 끝낸다(브라우저는 가려진 탭의 프레임을 멈추므로, 그대로 두면 이벤트 처리가 멈춘다) */
+function flushAnim(){while(WAITS.length)WAITS.pop().r();
+  for(const c of Object.values(CH))if(c.path.length){const e=c.path[c.path.length-1];c.x=e[0];c.y=e[1];c.path=[];const d=c.done;c.done=null;if(d)d()}
+  while(PK.length){const p=PK.pop();p.el.remove();p.r()}}
 
 /* ================= 화면 패널 ================= */
 const ICON={lead:'팀',sen:'시',jun:'주',risk:'리',me:'나',sys:'·'};
@@ -755,7 +761,8 @@ function live(){
   es.onmessage=e=>{try{const r=JSON.parse(e.data);if(r.event==='실시간시세'){if(r.t){CLOCK.raw=r.t;showClock()}SNAP={...SNAP,...r,startEq:dayStart??r.equity};SNAP.positions=r.positions||{};renderKpis();drawScreen();return}Q.push(r)}catch{}pump()};
   es.onerror=()=>{$('modeDot').className='dot off';$('modeTxt').textContent='연결 끊김 · 재연결 중'};
   es.onopen=()=>{$('modeDot').className='dot';$('modeTxt').textContent='실시간 · 내 PC'};
-  async function pump(){if(busy)return;busy=true;while(Q.length){const r=Q.shift();try{await handle(r)}catch(err){console.warn(err)}}busy=false}
+  async function pump(){if(busy)return;busy=true;while(Q.length){FF=document.hidden||Q.length>4;if(FF)flushAnim();const r=Q.shift();try{await handle(r)}catch(err){console.warn(err)}}FF=document.hidden;busy=false}
+  document.addEventListener('visibilitychange',()=>{FF=document.hidden||Q.length>4;if(FF)flushAnim()});
   async function handle(r){
     if(r.t){CLOCK.raw=r.t;showClock()}
     const by=who(r.by),d=r;
