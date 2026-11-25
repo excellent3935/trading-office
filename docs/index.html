@@ -776,6 +776,7 @@ function live(){
       case '분석':{const rows=d.setups||[];
         $('watch').innerHTML=rows.map(r=>`<li><b>${esc(r.instrument)}</b><span class="side ${r.side}">${r.side==='long'?'롱':'숏'}</span><span class="dots">${r.checks.map(c=>`<i class="${c.ok?'ok':''}" title="${esc(c.name+': '+c.detail)}"></i>`).join('')}</span><small>${r.passed}/4</small></li>`).join('')||'<li class="empty">표시할 종목이 없어요.</li>';
         $('watchNote').textContent=(d.thin||[]).length?`${d.thin.join(', ')}: 데이터 부족으로 진입 보류`:'';return}
+      case '거시':{feed('sys',d.halt?'거시 이벤트 — 신규 매수 금지':'외부 뉴스·거시 반영',`${d.status}${d.summary?' · '+d.summary:''}`,d.halt?'bad':'on');return}
       case '뉴스':{await say(by,`${(d.changed||[]).join(', ')} 뉴스: ${d.summary||''}`,'warn',3000);feed(by,'뉴스 수급 변화',(d.changed||[]).join(', '),'warn');return}
       case '스캔':{const to=who(d.to);if(!(d.candidates||[]).length&&(d.watch||[]).length){await say(by,`관찰: ${(d.watch||[]).slice(0,3).join(', ')}`,'say',2200)}feed(by,'스캔',`관찰 ${(d.watch||[]).join(', ')||'—'} · 후보 ${(d.candidates||[]).join(', ')||'—'}`);return}
       case '청산판단':{await say(by,`${d.symbol} ${d.kind==='tp'?'익절':'정리'}: ${d.reason}`,d.kind==='tp'?'good':'bad',3000);feed(by,`${d.symbol} ${d.kind==='tp'?'익절':'손절·정리'}`,d.reason,d.kind==='tp'?'on':'bad');return}

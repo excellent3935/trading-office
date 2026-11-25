@@ -1,0 +1,16 @@
+{
+  "asof": "2026-11-26T02:40:00+09:00",
+  "ttl_hours": 12,
+  "symbols": {
+    "NVDA": {"score": 0.3, "why": "예시: CEO 복귀 확정"}
+  },
+  "macro": {
+    "war":        {"score": 0.0, "energy": 0.0, "why": ""},
+    "oil":        {"score": 0.0, "energy": 0.0, "why": ""},
+    "rates":      {"score": 0.0, "why": ""},
+    "indicators": {"score": 0.0, "why": ""},
+    "bonds":      {"score": 0.0, "why": ""}
+  },
+  "entry_halt": false,
+  "halt_why": ""
+}

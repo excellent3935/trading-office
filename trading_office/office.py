@@ -22,6 +22,7 @@ from .agents import JuniorTrader, SeniorTrader, TeamLead
 from .broker import LiveBroker, PaperBroker, Position
 from .config import OfficeConfig
 from .llm import ClaudeCLI, MockLLM
+from . import macro
 from .market import STEP_MIN, MarketData, bar_starts
 from .news import NewsFeed, SampleNews
 from .risk import RiskManager
@@ -35,6 +36,8 @@ class Office:
                  news: NewsFeed | None = None):
         self.cfg, self.market = cfg, market
         self._start_eq = None
+        self.override_path = Path(cfg.data_dir) / "news_override.json"   # 외부 뉴스·거시 반영 파일(선택)
+        self._ovr_state = None
         self.news = news or SampleNews()
         llm = ClaudeCLI(cfg.claude_model) if cfg.llm == "claude" else MockLLM()
         r = cfg.risk
@@ -222,6 +225,30 @@ class Office:
             if changed:
                 self.log("뉴스", by=jn, to=sn, summary=res.get("summary", ""), changed=changed,
                          headlines={s: h[-1] for s, h in heads.items() if h})
+        self._apply_override()
+
+    def _apply_override(self):
+        """news_override.json 이 있으면(그리고 유효하면) 뉴스 점수에 종목 점수·거시 보정을 더하고, 필요하면 신규 매수를 막는다."""
+        data, status = macro.load(self.override_path, set(self.risk.allowed))
+        key = (status, data["asof"] if data else None, data["halt"] if data else None)
+        if key != self._ovr_state:                       # 상태가 바뀔 때만 한 번 알린다
+            if status != "파일 없음" or self._ovr_state is not None:
+                self.log("거시", status=status, summary=macro.summary(data) if data else "",
+                         halt=data["halt"] if data else False,
+                         notes={k: v["why"] for k, v in (data or {}).get("macro", {}).items() if v["why"]})
+            self._ovr_state = key
+        blocked = self.risk.entry_blocked or ""
+        if data and data["halt"]:
+            if not blocked:
+                self.risk.entry_blocked = "거시 이벤트: " + (data["halt_why"] or "신규 매수 금지")
+        elif blocked.startswith("거시 이벤트"):
+            self.risk.entry_blocked = ""
+        if not data:
+            return
+        for s in list(self.scores):
+            adj = macro.adjustment(s, data) + data["symbols"].get(s, {}).get("score", 0.0)
+            if adj:
+                self.scores[s] = max(-1.0, min(1.0, self.scores[s] + adj))
 
     def group_exposure(self, senior: str) -> float:
         px = self.prices()
