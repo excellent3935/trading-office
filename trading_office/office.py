@@ -351,6 +351,9 @@ class Office:
     def _live_tick(self):
         """대기 중 약 3초마다: 화면에 현재가·평가금액을 보내고, 보유 종목 손절선만 점검한다(판단·신규 매수는 하지 않음)."""
         try:
+            now = datetime.now(cal.ET)
+            if self.clock is None or now > self.clock:        # 화면 시계가 실제 시각을 따라가도록
+                self.clock = now
             if self._start_eq is not None and not self.risk.halted and self.paper.positions:
                 self.check_risk_state(self._start_eq)
             self.emit("실시간시세", **self.snapshot())

@@ -752,7 +752,7 @@ function live(){
   $('srcNote').textContent='내 PC에서 돌고 있는 Python 오피스의 진행 상황을 그대로 보여줍니다. 주문 승인은 터미널에서만 받아요.';
   const Q=[];let busy=false,dayStart=null;
   const es=new EventSource('/events');
-  es.onmessage=e=>{try{const r=JSON.parse(e.data);if(r.event==='실시간시세'){SNAP={...SNAP,...r,startEq:dayStart??r.equity};SNAP.positions=r.positions||{};renderKpis();drawScreen();return}Q.push(r)}catch{}pump()};
+  es.onmessage=e=>{try{const r=JSON.parse(e.data);if(r.event==='실시간시세'){if(r.t){CLOCK.raw=r.t;showClock()}SNAP={...SNAP,...r,startEq:dayStart??r.equity};SNAP.positions=r.positions||{};renderKpis();drawScreen();return}Q.push(r)}catch{}pump()};
   es.onerror=()=>{$('modeDot').className='dot off';$('modeTxt').textContent='연결 끊김 · 재연결 중'};
   es.onopen=()=>{$('modeDot').className='dot';$('modeTxt').textContent='실시간 · 내 PC'};
   async function pump(){if(busy)return;busy=true;while(Q.length){const r=Q.shift();try{await handle(r)}catch(err){console.warn(err)}}busy=false}
